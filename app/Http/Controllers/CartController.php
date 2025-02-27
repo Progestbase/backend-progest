@@ -85,6 +85,21 @@ class CartController extends Controller
     } catch (\Exception $e) {
         return response()->json(['error' => $e->getMessage()], 500);
     }
+
+
 }
+
+    public function clearCart()
+    {
+        try {
+            // Deleta todos os itens do carrinho do usuário autenticado
+            CartItem::where('user_id', auth()->id())->delete();
+
+            return response()->json(['message' => 'Carrinho limpo com sucesso!']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
 
 }

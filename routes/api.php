@@ -33,6 +33,7 @@ Route::group(['middleware' => 'auth:sanctum'], function(){
     Route::post('/cart/add', [CartController::class, 'addItem']);
     Route::get('/cart/items', [CartController::class, 'viewCart']);
     Route::delete('/cart/remove/{id}', [CartController::class, 'removeItem']);
+    Route::delete('/cart/items', [CartController::class, 'clearCart']);
     Route::put('/cart/update/{id}', [CartController::class, 'updateItemQuantity']);
     Route::apiResource('orders', OrderController::class);
 });
