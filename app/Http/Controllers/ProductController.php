@@ -14,8 +14,17 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return Product::all();
+        // Busca os produtos com current_stock diferente de 0 e retorna apenas 15 por vez
+        $products = Product::where('current_stock', '>', 0)
+            ->orderBy('name')
+            ->paginate(15);
+
+        // Retorna os produtos como uma resposta JSON
+        return response()->json($products);
     }
+
+
+
 
     /**
      * Store a newly created resource in storage.
@@ -96,4 +105,17 @@ class ProductController extends Controller
         $count = Product::where('expiration_date', '<', $dateThreshold)->count();
         return response()->json(['count' => $count]);
     }
+
+    public function search(Request $request)
+    {
+        $searchQuery = $request->input('query');
+
+        // Normaliza e faz a pesquisa em minúsculas para garantir correspondência
+        $products = Product::where('current_stock', '>', 0) // Filtra produtos com estoque disponível
+            ->whereRaw("LOWER(name) LIKE ?", ["%" . strtolower($searchQuery) . "%"])
+            ->get();
+
+        return response()->json($products);
+    }
+
 }
