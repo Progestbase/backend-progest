@@ -14,7 +14,7 @@ class AddRoleToUsersTable extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('solicitante'); // Adicionando a coluna 'role' com valor default
+            $table->enum('role', ['S', 'A'])->default('S'); // Adicionando a coluna 'role' com valor default
         });
     }
 
@@ -26,7 +26,7 @@ class AddRoleToUsersTable extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role'); // Revertendo a adição da coluna 'role'
+            $table->dropColumn('role'); // Removendo a coluna 'role' na reversão da migração
         });
     }
 }
