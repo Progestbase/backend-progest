@@ -24,9 +24,3 @@ php artisan jetstream:install livewire
 ```
 
 logo em seguida rodar os seguintes comandos, sendo necessário o node instalado no ambiente de desenvolvimento:
-
-```jsx
-npm install
-npm audit fix --force
-npm run dev
-```
