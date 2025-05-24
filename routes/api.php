@@ -24,7 +24,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 
-Route::group(['middleware' => 'auth:sanctum'], function(){
+Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('products', ProductController::class);
     Route::get('count-below-minimum-stock', [ProductController::class, 'countProductsBelowMinimumStock']);
     Route::get('count-expiring-soon', [ProductController::class, 'countProductsExpiringSoon']);
@@ -36,13 +36,14 @@ Route::group(['middleware' => 'auth:sanctum'], function(){
     Route::delete('/cart/items', [CartController::class, 'clearCart']);
     Route::put('/cart/update/{id}', [CartController::class, 'updateItemQuantity']);
     Route::apiResource('orders', OrderController::class);
+
+    // Cadastro de Usuários
 });
 
 
 Route::post("login", [AuthController::class, 'login']);
 Route::post("register", [AuthController::class, 'register']);
 Route::post("logout", [AuthController::class, 'logout']);
-
-
-
-
+Route::post("/user/add", [AuthController::class, 'add']);
+Route::post('/user/list', [AuthController::class, 'listAll']);
+Route::post('/user/listData',  [AuthController::class, 'listData']);
