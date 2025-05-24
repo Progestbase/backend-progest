@@ -10,7 +10,7 @@ class UserController extends Controller
 {
     function index(Request $request)
     {
-        
+        $data = $request->all();
     }
 
     public function countUsers()
