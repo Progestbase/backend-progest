@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\Cadastros\TiposUsuarioController;
+use App\Http\Controllers\Cadastros\UnidadesController;
+use App\Http\Controllers\Cadastros\ProdutosController;
 
 /*
 |--------------------------------------------------------------------------
@@ -45,5 +48,21 @@ Route::post("login", [AuthController::class, 'login']);
 Route::post("register", [AuthController::class, 'register']);
 Route::post("logout", [AuthController::class, 'logout']);
 Route::post("/user/add", [AuthController::class, 'add']);
+Route::post("/user/update", [AuthController::class, 'update']);
 Route::post('/user/list', [AuthController::class, 'listAll']);
 Route::post('/user/listData',  [AuthController::class, 'listData']);
+
+Route::post('/tiposUsuario/add', [TiposUsuarioController::class, 'add']);
+Route::post('/tiposUsuario/update', [TiposUsuarioController::class, 'update']);
+Route::post('/tiposUsuario/list', [TiposUsuarioController::class, 'listAll']);
+Route::post('/tiposUsuario/listData', [TiposUsuarioController::class, 'listData']);
+
+Route::post('/unidades/add', [UnidadesController::class, 'add']);
+Route::post('/unidades/update', [UnidadesController::class, 'update']);
+Route::post('/unidades/list', [UnidadesController::class, 'listAll']);
+Route::post('/unidades/listData', [UnidadesController::class, 'listData']);
+
+Route::post('/produtos/add', [ProdutosController::class, 'add']);
+Route::post('/produtos/update', [ProdutosController::class, 'update']);
+Route::post('/produtos/list', [ProdutosController::class, 'listAll']);
+Route::post('/produtos/listData', [ProdutosController::class, 'listData']);

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddRoleToUsersTable extends Migration
+class AddStatusToTiposUsuariosTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,8 @@ class AddRoleToUsersTable extends Migration
      */
     public function up()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('role', ['S', 'A'])->default('S'); // Adicionando a coluna 'role' com valor default
+        Schema::table('tipos_usuario', function (Blueprint $table) {
+            $table->string('status')->default('A')->comment('A = ativo, I = inativo')->after('descricao');
         });
     }
 
@@ -25,8 +25,8 @@ class AddRoleToUsersTable extends Migration
      */
     public function down()
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role'); // Removendo a coluna 'role' na reversão da migração
+        Schema::table('tipos_usuario', function (Blueprint $table) {
+            $table->dropColumn('status');
         });
     }
 }
