@@ -24,6 +24,7 @@ class CreateDefaultAdminUser extends Migration
             'data_nascimento' => '1990-01-01',
             'cpf' => '00000000000',
             'unidade_consumidora_id' => 1,
+            'usuario_tipo' => 1,
             'status' => 'A',
             'created_at' => now(),
             'updated_at' => now(),
