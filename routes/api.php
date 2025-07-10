@@ -10,6 +10,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\Cadastros\TiposUsuarioController;
 use App\Http\Controllers\Cadastros\UnidadesController;
 use App\Http\Controllers\Cadastros\ProdutosController;
+use App\Http\Controllers\Cadastros\CategoriasProdutosController;
+use App\Http\Controllers\Cadastros\UnidadesMedidaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,3 +68,13 @@ Route::post('/produtos/add', [ProdutosController::class, 'add']);
 Route::post('/produtos/update', [ProdutosController::class, 'update']);
 Route::post('/produtos/list', [ProdutosController::class, 'listAll']);
 Route::post('/produtos/listData', [ProdutosController::class, 'listData']);
+
+Route::post('/categoriasProdutos/add', [CategoriasProdutosController::class, 'add']);
+Route::post('/categoriasProdutos/update', [CategoriasProdutosController::class, 'update']);
+Route::post('/categoriasProdutos/list', [CategoriasProdutosController::class, 'listAll']);
+Route::post('/categoriasProdutos/listData', [CategoriasProdutosController::class, 'listData']);
+
+Route::post('/unidadesMedida/add', [UnidadesMedidaController::class, 'add']);
+Route::post('/unidadesMedida/update', [UnidadesMedidaController::class, 'update']);
+Route::post('/unidadesMedida/list', [UnidadesMedidaController::class, 'listAll']);
+Route::post('/unidadesMedida/listData', [UnidadesMedidaController::class, 'listData']);

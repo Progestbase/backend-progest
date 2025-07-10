@@ -69,7 +69,6 @@ Class TiposUsuarioController
         }  
         
         return ['status' => true, 'data' => $tiposUsuario];
-
     }
 
     public function listData(Request $request)
