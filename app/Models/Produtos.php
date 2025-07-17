@@ -11,5 +11,5 @@ class Produtos extends Model
     protected $fillable = [
         'nome',
         // Restante atributos dos produtos
-    ]
+    ];
 }
