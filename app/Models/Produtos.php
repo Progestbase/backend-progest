@@ -10,6 +10,15 @@ class Produtos extends Model
     use HasFactory;
     protected $fillable = [
         'nome',
-        // Restante atributos dos produtos
-    ]
+        'descricao',
+    ];
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        '',
+    ];
 }

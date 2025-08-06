@@ -18,7 +18,7 @@ class CreateUnidadesTable extends Migration
             $table->string('nome');
             $table->string('codigo_unidade')->unique();
             $table->string('descricao')->nullable();
-            $table->string('status')->default('A')->comment('A = Ativo, I = Inativo');
+            $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
             $table->timestamps();
         });
     }

@@ -53,28 +53,34 @@ Route::post("/user/add", [AuthController::class, 'add']);
 Route::post("/user/update", [AuthController::class, 'update']);
 Route::post('/user/list', [AuthController::class, 'listAll']);
 Route::post('/user/listData',  [AuthController::class, 'listData']);
+Route::post('/user/delete/{id}',  [AuthController::class, 'delete']);
 
 Route::post('/tiposUsuario/add', [TiposUsuarioController::class, 'add']);
 Route::post('/tiposUsuario/update', [TiposUsuarioController::class, 'update']);
 Route::post('/tiposUsuario/list', [TiposUsuarioController::class, 'listAll']);
 Route::post('/tiposUsuario/listData', [TiposUsuarioController::class, 'listData']);
+Route::post('/tiposUsuario/delete/{id}', [TiposUsuarioController::class, 'delete']);
 
 Route::post('/unidades/add', [UnidadesController::class, 'add']);
 Route::post('/unidades/update', [UnidadesController::class, 'update']);
 Route::post('/unidades/list', [UnidadesController::class, 'listAll']);
 Route::post('/unidades/listData', [UnidadesController::class, 'listData']);
+Route::post('/unidades/delete/{id}', [UnidadesController::class, 'delete']);
 
 Route::post('/produtos/add', [ProdutosController::class, 'add']);
 Route::post('/produtos/update', [ProdutosController::class, 'update']);
 Route::post('/produtos/list', [ProdutosController::class, 'listAll']);
 Route::post('/produtos/listData', [ProdutosController::class, 'listData']);
+Route::post('/produtos/delete/{id}', [ProdutosController::class, 'delete']);
 
 Route::post('/categoriasProdutos/add', [CategoriasProdutosController::class, 'add']);
 Route::post('/categoriasProdutos/update', [CategoriasProdutosController::class, 'update']);
 Route::post('/categoriasProdutos/list', [CategoriasProdutosController::class, 'listAll']);
 Route::post('/categoriasProdutos/listData', [CategoriasProdutosController::class, 'listData']);
+Route::post('/categoriasProdutos/delete/{id}', [CategoriasProdutosController::class, 'delete']);
 
 Route::post('/unidadesMedida/add', [UnidadesMedidaController::class, 'add']);
 Route::post('/unidadesMedida/update', [UnidadesMedidaController::class, 'update']);
 Route::post('/unidadesMedida/list', [UnidadesMedidaController::class, 'listAll']);
 Route::post('/unidadesMedida/listData', [UnidadesMedidaController::class, 'listData']);
+Route::post('/unidadesMedida/delete/{id}', [UnidadesMedidaController::class, 'delete']);

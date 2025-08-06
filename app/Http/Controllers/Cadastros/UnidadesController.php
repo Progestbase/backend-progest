@@ -74,6 +74,41 @@ Class UnidadesController
 
     }
 
+    public function update(Request $request) {
+        $data = $request->all();
+
+        $validator = Validator::make($data['unidades'], [
+            'nome'          => 'required|string|max:255',
+            'codigo_unidade'=> 'required|string|max:50|unique:unidades,codigo_unidade',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'validacao' => true,
+                'erros' => $validator->errors()
+            ], 422);
+        }  
+
+        $unidades = Unidades::find($data['unidades']['id']);
+
+        if (!$unidades) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unidade não encontrada.'
+            ], 404);
+        }
+
+        $unidades->nome           = mb_strtoupper($data['unidades']['nome']);
+        $unidades->codigo_unidade = mb_strtoupper($data['unidades']['codigo_unidade']);
+        $unidades->descricao      = $data['unidades']['descricao'] ? $data['unidades']['descricao'] : '';
+        $unidades->status         = $data['unidades']['status'] ? $data['unidades']['status'] : 'A';
+
+        $unidades->save();
+
+        return ['status' => true, 'data' => $unidades];
+    }
+
     public function listData(Request $request)
     {
         $data = $request->all();
@@ -85,5 +120,46 @@ Class UnidadesController
 
         return ['status' => true, 'data' => $unidades, 'query' => DB::getQueryLog()];
 
+    }
+
+    public function delete($id)
+    {
+        $unidades = Unidades::find($id);
+
+        if (!$unidades) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unidade não encontrada.'
+            ], 404);
+        }
+
+        // Verificar usuários
+        $references = $this->checkUnidadesReferences($id);
+        if (!empty($references)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Não é possível excluir esta unidade pois ela possui registros relacionados no sistema.',
+                'references' => $references
+            ], 422);
+        }
+        $unidades->delete();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Unidade excluída com sucesso.'
+        ], 200);
+    }   
+
+    private function checkUnidadesReferences($id)
+    {
+        $references = [];
+
+        // Verificar usuários
+        $userCount = DB::table('users')->where('unidade_consumidora_id', $id)->count();
+        if ($userCount > 0) {
+            $references[] = 'usuários (' . $userCount . ')';
+        }
+
+        return $references;
     }
 }
