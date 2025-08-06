@@ -10,7 +10,7 @@ class Produtos extends Model
     use HasFactory;
     protected $fillable = [
         'nome',
-        'descricao',
+        'descricao'
     ];
 
     /**
@@ -19,6 +19,6 @@ class Produtos extends Model
      * @var array<int, string>
      */
     protected $hidden = [
-        '',
+        ''
     ];
 }

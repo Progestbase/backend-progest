@@ -11,6 +11,7 @@ use App\Http\Controllers\Cadastros\TiposUsuarioController;
 use App\Http\Controllers\Cadastros\UnidadesController;
 use App\Http\Controllers\Cadastros\ProdutosController;
 use App\Http\Controllers\Cadastros\CategoriasProdutosController;
+use App\Http\Controllers\Cadastros\FornecedorController;
 use App\Http\Controllers\Cadastros\UnidadesMedidaController;
 
 /*
@@ -84,3 +85,8 @@ Route::post('/unidadesMedida/update', [UnidadesMedidaController::class, 'update'
 Route::post('/unidadesMedida/list', [UnidadesMedidaController::class, 'listAll']);
 Route::post('/unidadesMedida/listData', [UnidadesMedidaController::class, 'listData']);
 Route::post('/unidadesMedida/delete/{id}', [UnidadesMedidaController::class, 'delete']);
+
+Route::post('/fornecedores/add', [FornecedorController::class, 'add']);
+Route::post('/fornecedores/update', [FornecedorController::class, 'update']);
+Route::post('/fornecedores/list', [FornecedorController::class, 'listAll']);
+Route::post('/fornecedores/listData', [FornecedorController::class, 'listData']);
