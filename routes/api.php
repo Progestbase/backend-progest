@@ -13,6 +13,7 @@ use App\Http\Controllers\Cadastros\ProdutosController;
 use App\Http\Controllers\Cadastros\CategoriasProdutosController;
 use App\Http\Controllers\Cadastros\FornecedorController;
 use App\Http\Controllers\Cadastros\UnidadesMedidaController;
+use App\Http\Controllers\Cadastros\EstoqueController;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,3 +91,10 @@ Route::post('/fornecedores/add', [FornecedorController::class, 'add']);
 Route::post('/fornecedores/update', [FornecedorController::class, 'update']);
 Route::post('/fornecedores/list', [FornecedorController::class, 'listAll']);
 Route::post('/fornecedores/listData', [FornecedorController::class, 'listData']);
+
+Route::post('/estoque/add', [EstoqueController::class, 'add']);
+Route::post('/estoque/update', [EstoqueController::class, 'update']);
+Route::post('/estoque/list', [EstoqueController::class, 'listAll']);
+Route::post('/estoque/listData', [EstoqueController::class, 'listData']);
+Route::post('/estoque/delete/{id}', [EstoqueController::class, 'delete']);
+
