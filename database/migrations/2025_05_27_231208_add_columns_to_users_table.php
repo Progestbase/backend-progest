@@ -19,9 +19,15 @@ class AddColumnsToUsersTable extends Migration
             $table->date('data_nascimento')->after('matricula')->nullable();
             $table->string('cpf', 11)->after('data_nascimento')->unique();
             $table->enum('status', ['A','I'])->after('cpf')->default('A')->comment('A = ativo, I = inativo');
-            $table->foreignId('unidade_consumidora_id')->after('status')->constrained('unidades_consumidoras');
-            $table->unsignedBigInteger('usuario_tipo')->after('unidade_consumidora_id');
-            $table->foreign('usuario_tipo')->references('id')->on('tipos_usuario');
+
+            // Relacionamento com a tabela de Perfis do usuário
+            $table->foreignId('perfil')->after('status')->constrained('perfis')->onDelete('restrict');
+
+            // Relacionamento com a tabela dos tipos de vínculo
+            $table->foreignId('tipo_vinculo')->after('perfil')->constrained('tipo_vinculo')->onDelete('restrict');
+
+            // Relacionamento com a tabela setor
+            $table->foreignId('setor')->after('tipo_vinculo')->constrained('setores')->onDelete('restrict');
         }); 
     }
 
@@ -33,16 +39,19 @@ class AddColumnsToUsersTable extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['usuario_tipo']);
-            
+            $table->dropForeign(['perfil']);
+            $table->dropForeign(['tipo_vinculo']);
+            $table->dropForeign(['setor']);
+
             $table->dropColumn([
                 'telefone', 
                 'matricula', 
                 'data_nascimento', 
                 'cpf', 
                 'status', 
-                'unidade_consumidora_id',
-                'usuario_tipo'
+                'perfil',
+                'tipo_vinculo',
+                'setor'
             ]);
         });
     }

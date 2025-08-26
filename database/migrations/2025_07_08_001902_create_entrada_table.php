@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateFornecedoresTable extends Migration
+class CreateEntradaTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,12 +13,12 @@ class CreateFornecedoresTable extends Migration
      */
     public function up()
     {
-        Schema::create('fornecedores', function (Blueprint $table) {
+        Schema::create('entrada', function (Blueprint $table) {
             $table->id();
-            $table->string('codigo')->unique();
-            $table->string('cnpj')->unique();
-            $table->string('razao_social');
-            $table->string('status')->default('A')->comment( 'A = ativo, I = inativo');
+            $table->string('nota_fiscal');
+            $table->date('data_emissao_nota_fiscal');
+            $table->dateTime('data_hora');
+            $table->foreignId('fornecedor_id')->constrained('fornecedores')->onDelete('restrict');
             $table->timestamps();
         });
     }
@@ -30,6 +30,6 @@ class CreateFornecedoresTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('fornecedores');
+        Schema::dropIfExists('entrada');
     }
 }

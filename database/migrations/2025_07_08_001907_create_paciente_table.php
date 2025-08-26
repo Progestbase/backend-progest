@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class AddStatusToTiposUsuariosTable extends Migration
+class CreatePacienteTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,8 +13,12 @@ class AddStatusToTiposUsuariosTable extends Migration
      */
     public function up()
     {
-        Schema::table('tipos_usuario', function (Blueprint $table) {
-            $table->string('status')->default('A')->comment('A = ativo, I = inativo')->after('descricao');
+        Schema::create('paciente', function (Blueprint $table) {
+            $table->id();
+            $table->string('nome');
+            $table->string('cpf', 11)->unique();
+            $table->string('prontuario')->unique();
+            $table->timestamps();
         });
     }
 
@@ -25,8 +29,6 @@ class AddStatusToTiposUsuariosTable extends Migration
      */
     public function down()
     {
-        Schema::table('tipos_usuario', function (Blueprint $table) {
-            $table->dropColumn('status');
-        });
+        Schema::dropIfExists('paciente');
     }
 }

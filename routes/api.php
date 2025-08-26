@@ -98,3 +98,4 @@ Route::post('/estoque/list', [EstoqueController::class, 'listAll']);
 Route::post('/estoque/listData', [EstoqueController::class, 'listData']);
 Route::post('/estoque/delete/{id}', [EstoqueController::class, 'delete']);
 
+// teste

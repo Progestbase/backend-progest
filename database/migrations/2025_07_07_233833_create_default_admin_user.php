@@ -16,19 +16,21 @@ class CreateDefaultAdminUser extends Migration
      */
     public function up()
     {
-        // DB::table('users')->insert([
-        //     'name' => 'Admin',
-        //     'email' => 'admin@example.com',
-        //     'password' => Hash::make('@admin!2025'),
-        //     'matricula' => '1234',
-        //     'data_nascimento' => '1990-01-01',
-        //     'cpf' => '00000000000',
-        //     'unidade_consumidora_id' => 1,
-        //     'usuario_tipo' => 1,
-        //     'status' => 'A',
-        //     'created_at' => now(),
-        //     'updated_at' => now(),
-        // ]);
+        DB::table('users')->insert([
+            'name' => 'ADMIN',
+            'email' => 'admin@admin.com',
+            'password' => bcrypt('admin'),
+            'telefone' => '00000000000',
+            'matricula' => 'ADM001',
+            'data_nascimento' => '1990-01-01',
+            'cpf' => '00000000000',
+            'status' => 'A',
+            'perfil' => 1, 
+            'tipo_vinculo' => 1,
+            'setor' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /**

@@ -48,4 +48,14 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public static function boot()
+    {
+        parent::boot();
+        static::deleting(function ($user) {
+            if ($user->email === 'admin@admin.com') {
+                throw new \Exception('O usuário Admin não pode ser excluído.');
+            }
+        });
+    }
 }
