@@ -7,13 +7,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Cadastros\TiposUsuarioController;
+use App\Http\Controllers\Cadastros\PerfilController;
 use App\Http\Controllers\Cadastros\UnidadesController;
 use App\Http\Controllers\Cadastros\ProdutosController;
 use App\Http\Controllers\Cadastros\CategoriasProdutosController;
 use App\Http\Controllers\Cadastros\FornecedorController;
 use App\Http\Controllers\Cadastros\UnidadesMedidaController;
 use App\Http\Controllers\Cadastros\EstoqueController;
+use App\Http\Controllers\Cadastros\TipoVinculoController;  
+use App\Http\Controllers\Cadastros\SetorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -57,11 +59,23 @@ Route::post('/user/list', [AuthController::class, 'listAll']);
 Route::post('/user/listData',  [AuthController::class, 'listData']);
 Route::post('/user/delete/{id}',  [AuthController::class, 'delete']);
 
-Route::post('/tiposUsuario/add', [TiposUsuarioController::class, 'add']);
-Route::post('/tiposUsuario/update', [TiposUsuarioController::class, 'update']);
-Route::post('/tiposUsuario/list', [TiposUsuarioController::class, 'listAll']);
-Route::post('/tiposUsuario/listData', [TiposUsuarioController::class, 'listData']);
-Route::post('/tiposUsuario/delete/{id}', [TiposUsuarioController::class, 'delete']);
+Route::post('/perfil/add', [PerfilController::class, 'add']);
+Route::post('/perfil/update', [PerfilController::class, 'update']);
+Route::post('/perfil/list', [PerfilController::class, 'listAll']);
+Route::post('/perfil/listData', [PerfilController::class, 'listData']);
+Route::post('/perfil/delete/{id}', [PerfilController::class, 'delete']);
+
+Route::post('/tipoVinculo/add', [TipoVinculoController::class, 'add']);
+Route::post('/tipoVinculo/update', [TipoVinculoController::class, 'update']);
+Route::post('/tipoVinculo/list', [TipoVinculoController::class, 'listAll']);
+Route::post('/tipoVinculo/listData', [TipoVinculoController::class, 'listData']);
+Route::post('/tipoVinculo/delete/{id}', [TipoVinculoController::class, 'delete']);
+
+Route::post('/setores/add', [SetorController::class, 'add']);
+Route::post('/setores/update', [SetorController::class, 'update']);
+Route::post('/setores/list', [SetorController::class, 'listAll']);
+Route::post('/setores/listData', [SetorController::class, 'listData']);
+Route::post('/setores/delete/{id}', [SetorController::class, 'delete']);
 
 Route::post('/unidades/add', [UnidadesController::class, 'add']);
 Route::post('/unidades/update', [UnidadesController::class, 'update']);

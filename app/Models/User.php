@@ -25,7 +25,9 @@ class User extends Authenticatable
         'data_nascimento',
         'cpf',
         'status',
-        'unidade_consumidora_id',
+        'perfil',
+        'tipo_vinculo',
+        'setor',
         'usuario_tipo',
         'password'
     ];
