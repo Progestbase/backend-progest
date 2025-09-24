@@ -12,14 +12,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 
-Class UnidadesController 
+class UnidadesController
 {
-    public function add(Request $request) {
+    public function add(Request $request)
+    {
         $data = $request->all();
-        
+
         $validator = Validator::make($data['unidades'], [
             'nome'          => 'required|string|max:255',
-            'codigo_unidade'=> 'required|string|max:50|unique:unidades,codigo_unidade',
+            'codigo_unidade' => 'required|string|max:50|unique:unidades,codigo_unidade',
+            'estoque'       => 'sometimes|boolean',
+            'tipo'          => 'sometimes|in:Medicamento,Material',
         ]);
 
         if ($validator->fails()) {
@@ -35,6 +38,8 @@ Class UnidadesController
         $unidades->codigo_unidade = mb_strtoupper($data['unidades']['codigo_unidade']);
         $unidades->descricao      = $data['unidades']['descricao'] ? $data['unidades']['descricao'] : '';
         $unidades->status         = $data['unidades']['status'] ? $data['unidades']['status'] : 'A';
+        $unidades->estoque        = $data['unidades']['estoque'] ?? false;
+        $unidades->tipo           = $data['unidades']['tipo'] ?? 'Material';
 
         $unidades->save();
 
@@ -58,28 +63,29 @@ Class UnidadesController
 
         if (!isset($data['paginate'])) {
             $unidades = $unidadesQuery
-                ->select('id', 'nome', 'codigo_unidade', 'descricao', 'status')
+                ->select('id', 'nome', 'codigo_unidade', 'descricao', 'status', 'estoque', 'tipo')
                 ->orderBy('nome')
                 // ->paginate($paginate)
-                ->get();
-                ;
+                ->get();;
         } else {
             $unidades = $unidadesQuery
-                ->select('id', 'nome', 'codigo_unidade', 'descricao', 'status')
+                ->select('id', 'nome', 'codigo_unidade', 'descricao', 'status', 'estoque', 'tipo')
                 ->orderBy('nome')
                 ->get();
-        }  
-        
-        return ['status' => true, 'data' => $unidades];
+        }
 
+        return ['status' => true, 'data' => $unidades];
     }
 
-    public function update(Request $request) {
+    public function update(Request $request)
+    {
         $data = $request->all();
 
         $validator = Validator::make($data['unidades'], [
             'nome'          => 'required|string|max:255',
-            'codigo_unidade'=> 'required|string|max:50|unique:unidades,codigo_unidade',
+            'codigo_unidade' => 'required|string|max:50|unique:unidades,codigo_unidade,' . $data['unidades']['id'],
+            'estoque'       => 'sometimes|boolean',
+            'tipo'          => 'sometimes|in:Medicamento,Material',
         ]);
 
         if ($validator->fails()) {
@@ -88,7 +94,7 @@ Class UnidadesController
                 'validacao' => true,
                 'erros' => $validator->errors()
             ], 422);
-        }  
+        }
 
         $unidades = Unidades::find($data['unidades']['id']);
 
@@ -103,6 +109,8 @@ Class UnidadesController
         $unidades->codigo_unidade = mb_strtoupper($data['unidades']['codigo_unidade']);
         $unidades->descricao      = $data['unidades']['descricao'] ? $data['unidades']['descricao'] : '';
         $unidades->status         = $data['unidades']['status'] ? $data['unidades']['status'] : 'A';
+        $unidades->estoque        = $data['unidades']['estoque'] ?? $unidades->estoque;
+        $unidades->tipo           = $data['unidades']['tipo'] ?? $unidades->tipo;
 
         $unidades->save();
 
@@ -119,7 +127,6 @@ Class UnidadesController
         $unidades = Unidades::find($dataID);
 
         return ['status' => true, 'data' => $unidades, 'query' => DB::getQueryLog()];
-
     }
 
     public function delete($id)
@@ -148,7 +155,7 @@ Class UnidadesController
             'status' => true,
             'message' => 'Unidade excluída com sucesso.'
         ], 200);
-    }   
+    }
 
     private function checkUnidadesReferences($id)
     {

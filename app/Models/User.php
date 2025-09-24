@@ -25,9 +25,7 @@ class User extends Authenticatable
         'data_nascimento',
         'cpf',
         'status',
-        'perfil',
         'tipo_vinculo',
-        'setor',
         'usuario_tipo',
         'password'
     ];
@@ -50,6 +48,16 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    /**
+     * Relacionamento com Setores (many-to-many)
+     * Um usuário pode pertencer a vários setores
+     */
+    public function setores()
+    {
+        return $this->belongsToMany(Setor::class, 'usuario_setor', 'user_id', 'setor_id')
+            ->withTimestamps();
+    }
 
     public static function boot()
     {

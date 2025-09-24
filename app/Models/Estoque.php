@@ -15,4 +15,14 @@ class Estoque extends Model
         'quantidade',
         'status',
     ];
+
+    public function produto()
+    {
+        return $this->belongsTo(Produto::class);
+    }
+
+    public function unidade()
+    {
+        return $this->belongsTo(Unidades::class, 'unidade_id');
+    }
 }

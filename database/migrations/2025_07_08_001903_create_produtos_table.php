@@ -19,7 +19,7 @@ class CreateProdutosTable extends Migration
             $table->string('marca')->nullable();
             $table->string('codigo_simpras')->nullable();
             $table->string('codigo_barras')->nullable();
-            $table->foreignId('tipo_produto_id')->constrained('tipo_produto')->onDelete('restrict');
+            $table->foreignId('grupo_produto_id')->constrained('grupo_produto')->onDelete('restrict');
             $table->foreignId('unidade_medida_id')->constrained('unidade_medida')->onDelete('restrict');
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
             $table->timestamps();

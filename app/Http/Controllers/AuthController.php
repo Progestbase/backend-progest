@@ -7,8 +7,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
-use App\Models\Perfil;
-use App\Models\Setor;
 use App\Models\TipoVinculo;
 use Illuminate\Support\Facades\DB;
 
@@ -49,7 +47,8 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logout realizado com sucesso!']);
     }
 
-    public function add(Request $request) {
+    public function add(Request $request)
+    {
         $data = $request->all();
 
         $validator = Validator::make($data['user'], [
@@ -59,8 +58,8 @@ class AuthController extends Controller
             'password' => 'required|string|min:4',
             'cpf' => 'required|string|max:14|unique:users',
             'matricula' => 'required|string|unique:users',
-            'perfil' => 'required|exists:perfis,id',
-            // 'setor' => 'required|exists:setores,id'
+
+            // 'unidade' => 'required|exists:unidades,id'
         ]);
 
         if ($validator->fails()) {
@@ -95,9 +94,8 @@ class AuthController extends Controller
         $user->data_nascimento = $data['user']['data_nascimento'] ?? null;
         $user->cpf = preg_replace('/\D/', '', $data['user']['cpf']);
         $user->status = $data['user']['status'];
-        $user->perfil = $data['user']['perfil'] ?? null;
+
         $user->tipo_vinculo = $data['user']['tipo_vinculo'] ?? null;
-        $user->setor = $data['user']['setor'] ?? 1;
         $user->password = bcrypt($data['user']['password']);
 
         $user->save();
@@ -120,9 +118,7 @@ class AuthController extends Controller
             'data_nascimento' => $data['data_nascimento'] ?? null,
             'cpf' => preg_replace('/\D/', '', $data['cpf']),
             'status' => $data['status'],
-            'perfil' => $data['perfil'] ?? null,
             'tipo_vinculo' => $data['tipo_vinculo'] ?? null,
-            'setor' => $data['setor'] ?? null,
         ]);
         if (!empty($data['password'])) {
             $user->password = bcrypt($data['password']);
@@ -142,9 +138,7 @@ class AuthController extends Controller
             'data_nascimento',
             'cpf',
             'status',
-            'perfil',
-            'tipo_vinculo',
-            'setor',
+            'tipo_vinculo'
         )->orderby('name')->get();
         return ['status' => true, 'data' => $users];
     }
@@ -155,14 +149,15 @@ class AuthController extends Controller
         if (!$user) {
             return ['status' => false, 'message' => 'Usuário não encontrado'];
         }
-        $perfil = $user->perfil ? Perfil::find($user->perfil) : null;
-        $setor = $user->setor ? Setor::find($user->setor) : null;
         $tipoVinculo = $user->tipo_vinculo ? TipoVinculo::find($user->tipo_vinculo) : null;
+
+        // Buscar setores do usuário com suas unidades
+        $setores = $user->setores()->with('unidade')->get();
+
         return [
             'status' => true,
             'data' => $user,
-            'perfil' => $perfil,
-            'setor' => $setor,
+            'setores' => $setores,
             'tipo_vinculo' => $tipoVinculo,
         ];
     }

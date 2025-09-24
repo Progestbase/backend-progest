@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateSetoresTable extends Migration
+class CreateUnidadeTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,13 +13,14 @@ class CreateSetoresTable extends Migration
      */
     public function up()
     {
-        Schema::create('setores', function (Blueprint $table) {
+        Schema::create('unidades', function (Blueprint $table) {
             $table->id();
             $table->string('nome');
-            $table->string('codigo_setor')->unique();
+            $table->string('codigo_unidade')->unique();
             $table->string('descricao')->nullable();
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
-            $table->enum('estoque', ['S', 'N'])->default('N')->comment('S = Sim, N = Não');
+            $table->boolean('estoque')->default(false);
+            $table->enum('tipo', ['Medicamento', 'Material'])->default('Material');
             $table->timestamps();
         });
     }
@@ -31,6 +32,6 @@ class CreateSetoresTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('setores');
+        Schema::dropIfExists('unidades');
     }
 }

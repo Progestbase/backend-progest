@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateTipoProdutoTable extends Migration
+class CreateGrupoProdutoTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,10 +13,11 @@ class CreateTipoProdutoTable extends Migration
      */
     public function up()
     {
-        Schema::create('tipo_produto', function (Blueprint $table) {
+        Schema::create('grupo_produto', function (Blueprint $table) {
             $table->id();
-            $table->enum('nome', ['Medicamento', 'Material']);
+            $table->string('nome');
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
+            $table->enum('tipo', ['Medicamento', 'Material'])->default('Material');
             $table->timestamps();
         });
     }
@@ -28,6 +29,6 @@ class CreateTipoProdutoTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('tipo_produto');
+        Schema::dropIfExists('grupo_produto');
     }
 }

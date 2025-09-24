@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateEstoqueTable extends Migration
+class CreateSetoresTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,14 +13,16 @@ class CreateEstoqueTable extends Migration
      */
     public function up()
     {
-        Schema::create('estoque', function (Blueprint $table) {
+        Schema::create('setores', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('produto_id')->constrained('produtos')->onDelete('restrict');
+            $table->string('nome');
+            $table->enum('status', ['A', 'I'])->default('A')->comment('A = ativo, I = inativo');
+            $table->enum('permissao', ['administrativo', 'solicitante'])->default('solicitante');
             $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
-            $table->integer('quantidade_atual');
-            $table->integer('quantidade_minima');
-            $table->enum('status_disponibilidade', ['D', 'I'])->default('D')->comment('D = Disponível, I = Indisponível');
             $table->timestamps();
+
+            // Garantir que não existam setores com mesmo nome na mesma unidade
+            $table->unique(['nome', 'unidade_id']);
         });
     }
 
@@ -31,6 +33,6 @@ class CreateEstoqueTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('estoque');
+        Schema::dropIfExists('setores');
     }
 }
