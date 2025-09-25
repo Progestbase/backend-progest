@@ -166,7 +166,7 @@ class UnidadesController
             ->where('setores.unidade_id', $id)
             ->distinct('users.id')
             ->count();
-            
+
         if ($userCount > 0) {
             $references[] = 'usuários (' . $userCount . ')';
         }
