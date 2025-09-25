@@ -13,6 +13,7 @@ use App\Http\Controllers\Cadastros\ProdutosController;
 use App\Http\Controllers\Cadastros\CategoriasProdutosController;
 use App\Http\Controllers\Cadastros\FornecedorController;
 use App\Http\Controllers\Cadastros\UnidadesMedidaController;
+use App\Http\Controllers\Cadastros\UnidadeMedidaController;
 use App\Http\Controllers\Cadastros\EstoqueController;
 use App\Http\Controllers\Cadastros\TipoVinculoController;
 
@@ -89,6 +90,13 @@ Route::post('/unidadesMedida/update', [UnidadesMedidaController::class, 'update'
 Route::post('/unidadesMedida/list', [UnidadesMedidaController::class, 'listAll']);
 Route::post('/unidadesMedida/listData', [UnidadesMedidaController::class, 'listData']);
 Route::post('/unidadesMedida/delete/{id}', [UnidadesMedidaController::class, 'delete']);
+
+// Rotas para tabela nova `unidade_medida` (singular)
+Route::post('/unidadeMedida/add', [UnidadeMedidaController::class, 'add']);
+Route::post('/unidadeMedida/update', [UnidadeMedidaController::class, 'update']);
+Route::post('/unidadeMedida/list', [UnidadeMedidaController::class, 'listAll']);
+Route::post('/unidadeMedida/listData', [UnidadeMedidaController::class, 'listData']);
+Route::post('/unidadeMedida/delete/{id}', [UnidadeMedidaController::class, 'delete']);
 
 Route::post('/fornecedores/add', [FornecedorController::class, 'add']);
 Route::post('/fornecedores/update', [FornecedorController::class, 'update']);
