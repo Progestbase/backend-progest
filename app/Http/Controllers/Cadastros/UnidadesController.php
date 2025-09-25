@@ -122,11 +122,9 @@ class UnidadesController
         $data = $request->all();
         $dataID = $data['id'];
 
-        DB::enableQueryLog();
-
         $unidades = Unidades::find($dataID);
 
-        return ['status' => true, 'data' => $unidades, 'query' => DB::getQueryLog()];
+        return ['status' => true, 'data' => $unidades];
     }
 
     public function delete($id)
@@ -161,10 +159,22 @@ class UnidadesController
     {
         $references = [];
 
-        // Verificar usuários
-        $userCount = DB::table('users')->where('unidade_consumidora_id', $id)->count();
+        // Verificar usuários através do relacionamento users -> setores -> unidades
+        $userCount = DB::table('users')
+            ->join('usuario_setor', 'users.id', '=', 'usuario_setor.user_id')
+            ->join('setores', 'usuario_setor.setor_id', '=', 'setores.id')
+            ->where('setores.unidade_id', $id)
+            ->distinct('users.id')
+            ->count();
+            
         if ($userCount > 0) {
             $references[] = 'usuários (' . $userCount . ')';
+        }
+
+        // Verificar setores vinculados à unidade
+        $setorCount = DB::table('setores')->where('unidade_id', $id)->count();
+        if ($setorCount > 0) {
+            $references[] = 'setores (' . $setorCount . ')';
         }
 
         return $references;
