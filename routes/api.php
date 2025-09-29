@@ -1,21 +1,16 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CartController;
-use App\Http\Controllers\OrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
 
 use App\Http\Controllers\Cadastros\UnidadesController;
-use App\Http\Controllers\Cadastros\ProdutosController;
-use App\Http\Controllers\Cadastros\CategoriasProdutosController;
 use App\Http\Controllers\Cadastros\FornecedorController;
-use App\Http\Controllers\Cadastros\UnidadesMedidaController;
 use App\Http\Controllers\Cadastros\UnidadeMedidaController;
 use App\Http\Controllers\Cadastros\EstoqueController;
 use App\Http\Controllers\Cadastros\TipoVinculoController;
+use App\Http\Controllers\Cadastros\GrupoProdutoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,17 +29,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
-    Route::apiResource('products', ProductController::class);
-    Route::get('count-below-minimum-stock', [ProductController::class, 'countProductsBelowMinimumStock']);
-    Route::get('count-expiring-soon', [ProductController::class, 'countProductsExpiringSoon']);
     Route::get('countUsers', [UserController::class, 'countUsers']);
-    Route::get('/search', [ProductController::class, 'search']);
-    Route::post('/cart/add', [CartController::class, 'addItem']);
-    Route::get('/cart/items', [CartController::class, 'viewCart']);
-    Route::delete('/cart/remove/{id}', [CartController::class, 'removeItem']);
-    Route::delete('/cart/items', [CartController::class, 'clearCart']);
-    Route::put('/cart/update/{id}', [CartController::class, 'updateItemQuantity']);
-    Route::apiResource('orders', OrderController::class);
 
     // Cadastro de Usuários
 });
@@ -73,23 +58,8 @@ Route::post('/unidades/list', [UnidadesController::class, 'listAll']);
 Route::post('/unidades/listData', [UnidadesController::class, 'listData']);
 Route::post('/unidades/delete/{id}', [UnidadesController::class, 'delete']);
 
-Route::post('/produtos/add', [ProdutosController::class, 'add']);
-Route::post('/produtos/update', [ProdutosController::class, 'update']);
-Route::post('/produtos/list', [ProdutosController::class, 'listAll']);
-Route::post('/produtos/listData', [ProdutosController::class, 'listData']);
-Route::post('/produtos/delete/{id}', [ProdutosController::class, 'delete']);
-
-Route::post('/categoriasProdutos/add', [CategoriasProdutosController::class, 'add']);
-Route::post('/categoriasProdutos/update', [CategoriasProdutosController::class, 'update']);
-Route::post('/categoriasProdutos/list', [CategoriasProdutosController::class, 'listAll']);
-Route::post('/categoriasProdutos/listData', [CategoriasProdutosController::class, 'listData']);
-Route::post('/categoriasProdutos/delete/{id}', [CategoriasProdutosController::class, 'delete']);
-
-Route::post('/unidadesMedida/add', [UnidadesMedidaController::class, 'add']);
-Route::post('/unidadesMedida/update', [UnidadesMedidaController::class, 'update']);
-Route::post('/unidadesMedida/list', [UnidadesMedidaController::class, 'listAll']);
-Route::post('/unidadesMedida/listData', [UnidadesMedidaController::class, 'listData']);
-Route::post('/unidadesMedida/delete/{id}', [UnidadesMedidaController::class, 'delete']);
+// Rotas dos módulos produtos, categoriasProdutos e unidadesMedida foram removidas
+// Use os novos módulos: Produto, GrupoProduto e UnidadeMedida
 
 // Rotas para tabela nova `unidade_medida` (singular)
 Route::post('/unidadeMedida/add', [UnidadeMedidaController::class, 'add']);
@@ -108,5 +78,11 @@ Route::post('/estoque/update', [EstoqueController::class, 'update']);
 Route::post('/estoque/list', [EstoqueController::class, 'listAll']);
 Route::post('/estoque/listData', [EstoqueController::class, 'listData']);
 Route::post('/estoque/delete/{id}', [EstoqueController::class, 'delete']);
+
+Route::post('/grupoProduto/add', [GrupoProdutoController::class, 'add']);
+Route::post('/grupoProduto/update', [GrupoProdutoController::class, 'update']);
+Route::post('/grupoProduto/list', [GrupoProdutoController::class, 'listAll']);
+Route::post('/grupoProduto/listData', [GrupoProdutoController::class, 'listData']);
+Route::post('/grupoProduto/delete/{id}', [GrupoProdutoController::class, 'delete']);
 
 // teste
