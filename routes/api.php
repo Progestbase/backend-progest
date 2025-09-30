@@ -7,6 +7,7 @@ use App\Http\Controllers\UserController;
 
 use App\Http\Controllers\Cadastros\UnidadesController;
 use App\Http\Controllers\Cadastros\FornecedorController;
+use App\Http\Controllers\Cadastros\ProdutoController;
 use App\Http\Controllers\Cadastros\UnidadeMedidaController;
 use App\Http\Controllers\Cadastros\EstoqueController;
 use App\Http\Controllers\Cadastros\TipoVinculoController;
@@ -75,6 +76,15 @@ Route::post('/fornecedores/list', [FornecedorController::class, 'listAll']);
 Route::post('/fornecedores/listData', [FornecedorController::class, 'listData']);
 Route::post('/fornecedores/delete', [FornecedorController::class, 'delete']);
 Route::post('/fornecedores/toggleStatus', [FornecedorController::class, 'toggleStatus']);
+
+// Rotas para produtos
+Route::post('/produtos/add', [ProdutoController::class, 'add']);
+Route::post('/produtos/update', [ProdutoController::class, 'update']);
+Route::post('/produtos/list', [ProdutoController::class, 'listAll']);
+Route::post('/produtos/listData', [ProdutoController::class, 'listData']);
+Route::post('/produtos/delete', [ProdutoController::class, 'delete']);
+Route::post('/produtos/toggleStatus', [ProdutoController::class, 'toggleStatus']);
+Route::post('/produtos/dadosAuxiliares', [ProdutoController::class, 'getDadosAuxiliares']);
 
 Route::post('/estoque/add', [EstoqueController::class, 'add']);
 Route::post('/estoque/update', [EstoqueController::class, 'update']);
