@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\DB;
 
 class GrupoProdutoController
 {
-    public function add(Request $request) {
+    public function add(Request $request)
+    {
         $data = $request->all();
 
         $validator = Validator::make($data['grupoProduto'], [
