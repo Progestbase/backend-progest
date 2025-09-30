@@ -68,10 +68,13 @@ Route::post('/unidadeMedida/list', [UnidadeMedidaController::class, 'listAll']);
 Route::post('/unidadeMedida/listData', [UnidadeMedidaController::class, 'listData']);
 Route::post('/unidadeMedida/delete/{id}', [UnidadeMedidaController::class, 'delete']);
 
+// Rotas para fornecedores
 Route::post('/fornecedores/add', [FornecedorController::class, 'add']);
 Route::post('/fornecedores/update', [FornecedorController::class, 'update']);
 Route::post('/fornecedores/list', [FornecedorController::class, 'listAll']);
 Route::post('/fornecedores/listData', [FornecedorController::class, 'listData']);
+Route::post('/fornecedores/delete', [FornecedorController::class, 'delete']);
+Route::post('/fornecedores/toggleStatus', [FornecedorController::class, 'toggleStatus']);
 
 Route::post('/estoque/add', [EstoqueController::class, 'add']);
 Route::post('/estoque/update', [EstoqueController::class, 'update']);
@@ -84,5 +87,3 @@ Route::post('/grupoProduto/update', [GrupoProdutoController::class, 'update']);
 Route::post('/grupoProduto/list', [GrupoProdutoController::class, 'listAll']);
 Route::post('/grupoProduto/listData', [GrupoProdutoController::class, 'listData']);
 Route::post('/grupoProduto/delete/{id}', [GrupoProdutoController::class, 'delete']);
-
-// teste

@@ -36,12 +36,13 @@ class GrupoProdutoController
         return ['status' => true, 'data' => $grupoProduto];
     }
 
-    public function listAll(Request $request) {
+    public function listAll(Request $request)
+    {
         $data = $request->all();
         $filters = $data['filters'] ?? [];
 
         $grupoProdutoQuery = GrupoProduto::query();
-        
+
         foreach ($filters as $condition) {
             foreach ($condition as $column => $value) {
                 $grupoProdutoQuery->where($column, $value);
@@ -63,7 +64,8 @@ class GrupoProdutoController
         return ['status' => true, 'data' => $grupoProdutos];
     }
 
-    public function update(Request $request) {
+    public function update(Request $request)
+    {
         $data = $request->all();
 
         $validator = Validator::make($data['grupoProduto'], [
@@ -97,7 +99,8 @@ class GrupoProdutoController
         return ['status' => true, 'data' => $grupoProduto];
     }
 
-    public function listData(Request $request) {
+    public function listData(Request $request)
+    {
         $data = $request->all();
         $dataID = $data['id'];
 
@@ -115,7 +118,8 @@ class GrupoProdutoController
         return ['status' => true, 'data' => $grupoProduto, 'query' => DB::getQueryLog()];
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         $grupoProduto = GrupoProduto::find($id);
 
         if (!$grupoProduto) {
@@ -143,7 +147,8 @@ class GrupoProdutoController
         ], 200);
     }
 
-    private function checkGrupoProdutoReferences($id) {
+    private function checkGrupoProdutoReferences($id)
+    {
         $references = [];
 
         // Verificar produtos relacionados
