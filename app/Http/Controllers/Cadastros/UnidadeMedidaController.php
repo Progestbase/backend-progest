@@ -20,7 +20,7 @@ class UnidadeMedidaController
 
         if ($validator->fails()) {
             return response()->json([
-                'status' => false,
+                'status' => false,  
                 'validacao' => true,
                 'erros' => $validator->errors()
             ], 422);

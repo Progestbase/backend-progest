@@ -48,6 +48,11 @@ class Produto extends Model
         return $this->hasMany(ItemMovimentacao::class);
     }
 
+    public function estoques()
+    {
+        return $this->hasMany(Estoque::class);
+    }
+
     // Scopes para filtros
     public function scopeAtivo($query)
     {

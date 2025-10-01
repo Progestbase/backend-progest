@@ -9,9 +9,10 @@ use App\Http\Controllers\Cadastros\UnidadesController;
 use App\Http\Controllers\Cadastros\FornecedorController;
 use App\Http\Controllers\Cadastros\ProdutoController;
 use App\Http\Controllers\Cadastros\UnidadeMedidaController;
-use App\Http\Controllers\Cadastros\EstoqueController;
+use App\Http\Controllers\Cadastros\EstoqueController as CadastrosEstoqueController;
 use App\Http\Controllers\Cadastros\TipoVinculoController;
 use App\Http\Controllers\Cadastros\GrupoProdutoController;
+use App\Http\Controllers\EstoqueController;
 
 /*
 |--------------------------------------------------------------------------
@@ -86,11 +87,18 @@ Route::post('/produtos/delete', [ProdutoController::class, 'delete']);
 Route::post('/produtos/toggleStatus', [ProdutoController::class, 'toggleStatus']);
 Route::post('/produtos/dadosAuxiliares', [ProdutoController::class, 'getDadosAuxiliares']);
 
-Route::post('/estoque/add', [EstoqueController::class, 'add']);
-Route::post('/estoque/update', [EstoqueController::class, 'update']);
-Route::post('/estoque/list', [EstoqueController::class, 'listAll']);
-Route::post('/estoque/listData', [EstoqueController::class, 'listData']);
-Route::post('/estoque/delete/{id}', [EstoqueController::class, 'delete']);
+// Rotas antigas do estoque (para manter compatibilidade)
+Route::post('/estoque/add', [CadastrosEstoqueController::class, 'add']);
+Route::post('/estoque/update', [CadastrosEstoqueController::class, 'update']);
+Route::post('/estoque/list', [CadastrosEstoqueController::class, 'listAll']);
+Route::post('/estoque/listData', [CadastrosEstoqueController::class, 'listData']);
+Route::post('/estoque/delete/{id}', [CadastrosEstoqueController::class, 'delete']);
+
+// Novas rotas do módulo de estoque
+Route::get('/estoque/unidade/{unidadeId}', [EstoqueController::class, 'listarPorUnidade']);
+Route::get('/estoque/{id}', [EstoqueController::class, 'show']);
+Route::put('/estoque/{id}/quantidade-minima', [EstoqueController::class, 'atualizarQuantidadeMinima']);
+Route::put('/estoque/{id}/status', [EstoqueController::class, 'atualizarStatus']);
 
 Route::post('/grupoProduto/add', [GrupoProdutoController::class, 'add']);
 Route::post('/grupoProduto/update', [GrupoProdutoController::class, 'update']);
