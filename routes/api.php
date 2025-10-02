@@ -12,6 +12,8 @@ use App\Http\Controllers\Cadastros\UnidadeMedidaController;
 use App\Http\Controllers\Cadastros\EstoqueController as CadastrosEstoqueController;
 use App\Http\Controllers\Cadastros\TipoVinculoController;
 use App\Http\Controllers\Cadastros\GrupoProdutoController;
+use App\Http\Controllers\Cadastros\PoloController;
+use App\Http\Controllers\Cadastros\PacienteController;
 use App\Http\Controllers\EstoqueController;
 
 /*
@@ -51,6 +53,14 @@ Route::post('/tipoVinculo/update', [TipoVinculoController::class, 'update']);
 Route::post('/tipoVinculo/list', [TipoVinculoController::class, 'listAll']);
 Route::post('/tipoVinculo/listData', [TipoVinculoController::class, 'listData']);
 Route::post('/tipoVinculo/delete/{id}', [TipoVinculoController::class, 'delete']);
+
+// Rotas para polo
+Route::post('/polo/add', [PoloController::class, 'add']);
+Route::post('/polo/update', [PoloController::class, 'update']);
+Route::post('/polo/list', [PoloController::class, 'listAll']);
+Route::post('/polo/listData', [PoloController::class, 'listData']);
+Route::post('/polo/delete/{id}', [PoloController::class, 'delete']);
+Route::post('/polo/toggleStatus', [PoloController::class, 'toggleStatus']);
 
 // Rotas antigas de setores removidas - usar /unidades
 
@@ -105,3 +115,10 @@ Route::post('/grupoProduto/update', [GrupoProdutoController::class, 'update']);
 Route::post('/grupoProduto/list', [GrupoProdutoController::class, 'listAll']);
 Route::post('/grupoProduto/listData', [GrupoProdutoController::class, 'listData']);
 Route::post('/grupoProduto/delete/{id}', [GrupoProdutoController::class, 'delete']);
+
+// Rotas para paciente
+Route::post('/paciente/add', [PacienteController::class, 'add']);
+Route::post('/paciente/update', [PacienteController::class, 'update']);
+Route::post('/paciente/list', [PacienteController::class, 'listAll']);
+Route::post('/paciente/listData', [PacienteController::class, 'listData']);
+Route::post('/paciente/delete/{id}', [PacienteController::class, 'delete']);

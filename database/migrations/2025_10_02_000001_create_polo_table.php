@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateUnidadeTable extends Migration
+class CreatePoloTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,15 +13,10 @@ class CreateUnidadeTable extends Migration
      */
     public function up()
     {
-        Schema::create('unidades', function (Blueprint $table) {
+        Schema::create('polo', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('polo_id')->constrained('polo')->onDelete('restrict');
             $table->string('nome');
-            $table->string('codigo_unidade')->unique();
-            $table->string('descricao')->nullable();
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
-            $table->boolean('estoque')->default(false);
-            $table->enum('tipo', ['Medicamento', 'Material', 'Medicamento_Material'])->default('Material');
             $table->timestamps();
         });
     }
@@ -33,6 +28,6 @@ class CreateUnidadeTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('unidades');
+        Schema::dropIfExists('polo');
     }
 }
