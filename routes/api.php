@@ -13,7 +13,6 @@ use App\Http\Controllers\Cadastros\EstoqueController as CadastrosEstoqueControll
 use App\Http\Controllers\Cadastros\TipoVinculoController;
 use App\Http\Controllers\Cadastros\GrupoProdutoController;
 use App\Http\Controllers\Cadastros\PoloController;
-use App\Http\Controllers\Cadastros\PacienteController;
 use App\Http\Controllers\EstoqueController;
 
 /*
@@ -115,10 +114,3 @@ Route::post('/grupoProduto/update', [GrupoProdutoController::class, 'update']);
 Route::post('/grupoProduto/list', [GrupoProdutoController::class, 'listAll']);
 Route::post('/grupoProduto/listData', [GrupoProdutoController::class, 'listData']);
 Route::post('/grupoProduto/delete/{id}', [GrupoProdutoController::class, 'delete']);
-
-// Rotas para paciente
-Route::post('/paciente/add', [PacienteController::class, 'add']);
-Route::post('/paciente/update', [PacienteController::class, 'update']);
-Route::post('/paciente/list', [PacienteController::class, 'listAll']);
-Route::post('/paciente/listData', [PacienteController::class, 'listData']);
-Route::post('/paciente/delete/{id}', [PacienteController::class, 'delete']);
