@@ -4,31 +4,57 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class Unidades extends Model
 {
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
+    use HasFactory;
 
     protected $table = 'unidades';
 
     protected $fillable = [
         'nome',
+        'codigo_unidade',
         'descricao',
+        'status',
+        'estoque',
+        'tipo'
+    ];
+
+    protected $casts = [
+        'estoque' => 'boolean',
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
+     * Obter produtos disponíveis para esta unidade baseado no tipo
      */
-    protected $hidden = [
-        '',
-    ];
+    public function produtosDisponiveis()
+    {
+        return Produto::whereHas('grupoProduto', function ($query) {
+            $query->where('tipo', $this->tipo);
+        });
+    }
+
+    /**
+     * Obter grupos de produtos compatíveis com esta unidade
+     */
+    public function gruposCompatíveis()
+    {
+        return GrupoProduto::where('tipo', $this->tipo)->where('status', 'A');
+    }
+
+    /**
+     * Relacionamento com estoque
+     */
+    public function estoques()
+    {
+        return $this->hasMany(Estoque::class, 'unidade_id');
+    }
+
+    /**
+     * Relacionamento com usuários
+     */
+    public function usuarios()
+    {
+        return $this->hasMany(User::class, 'unidade');
+    }
 }

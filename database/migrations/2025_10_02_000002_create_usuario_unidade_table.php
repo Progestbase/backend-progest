@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateEstoqueTable extends Migration
+class CreateUsuarioUnidadeTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,14 +13,15 @@ class CreateEstoqueTable extends Migration
      */
     public function up()
     {
-        Schema::create('estoque', function (Blueprint $table) {
+        Schema::create('usuario_unidade', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('produto_id')->constrained('produtos')->onDelete('restrict');
+            $table->foreignId('usuario_id')->constrained('users')->onDelete('restrict');
             $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
-            $table->integer('quantidade_atual');
-            $table->integer('quantidade_minima');
-            $table->enum('status_disponibilidade', ['D', 'I'])->default('D')->comment('D = Disponível, I = Indisponível');
+            $table->enum('perfil', ['admin', 'almoxarife', 'solicitante']);
             $table->timestamps();
+
+            // Garantir que um usuário não tenha perfis duplicados na mesma unidade
+            $table->unique(['usuario_id', 'unidade_id']);
         });
     }
 
@@ -31,6 +32,6 @@ class CreateEstoqueTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('estoque');
+        Schema::dropIfExists('usuario_unidade');
     }
 }

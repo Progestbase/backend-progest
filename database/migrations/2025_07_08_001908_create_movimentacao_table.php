@@ -16,9 +16,8 @@ class CreateMovimentacaoTable extends Migration
         Schema::create('movimentacao', function (Blueprint $table) {
             $table->id();
             $table->foreignId('usuario_id')->constrained('users')->onDelete('restrict');
-            $table->foreignId('paciente_id')->nullable()->constrained('paciente')->onDelete('restrict');
-            $table->foreignId('setor_origem_id')->nullable()->constrained('setores')->onDelete('restrict');
-            $table->foreignId('setor_destino_id')->nullable()->constrained('setores')->onDelete('restrict');
+            $table->foreignId('unidade_origem_id')->nullable()->constrained('unidades')->onDelete('restrict');
+            $table->foreignId('unidade_destino_id')->nullable()->constrained('unidades')->onDelete('restrict');
             $table->enum('tipo', ['T', 'D', 'S'])->comment('T = Transferência, D = Devolução, S = Saída');
             $table->dateTime('data_hora');
             $table->text('observacao')->nullable();

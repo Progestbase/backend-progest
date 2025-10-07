@@ -7,23 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 class Movimentacao extends Model
 {
     protected $table = 'movimentacao';
-    protected $fillable = ['usuario_id', 'paciente_id', 'setor_origem_id', 'setor_destino_id', 'tipo', 'data_hora', 'observacao', 'status_solicitacao'];
+    protected $fillable = ['usuario_id', 'unidade_origem_id', 'unidade_destino_id', 'tipo', 'data_hora', 'observacao', 'status_solicitacao'];
+
     public function usuario()
     {
         return $this->belongsTo(User::class);
     }
-    public function paciente()
+
+    public function unidadeOrigem()
     {
-        return $this->belongsTo(Paciente::class);
+        return $this->belongsTo(Unidades::class, 'unidade_origem_id');
     }
-    public function setorOrigem()
+
+    public function unidadeDestino()
     {
-        return $this->belongsTo(Setor::class, 'setor_origem_id');
+        return $this->belongsTo(Unidades::class, 'unidade_destino_id');
     }
-    public function setorDestino()
-    {
-        return $this->belongsTo(Setor::class, 'setor_destino_id');
-    }
+
     public function itens()
     {
         return $this->hasMany(ItemMovimentacao::class);

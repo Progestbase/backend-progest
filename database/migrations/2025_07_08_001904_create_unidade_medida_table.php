@@ -15,10 +15,8 @@ class CreateUnidadeMedidaTable extends Migration
     {
         Schema::create('unidade_medida', function (Blueprint $table) {
             $table->id();
-            $table->enum('nome', [
-                'Caixa', 'Dúzia', 'Unidade', 'Pacote', 'Cento', 'Resma', 'Frasco', 'Quilo', 'Litro',
-                'Estojo', 'Galão', 'Par', 'Metro', 'Jogo', 'Fardo', 'Rolo'
-            ]);
+            $table->string('nome', 100);
+            $table->unsignedInteger('quantidade_unidade_minima')->default(1)->comment('Quantidade mínima da unidade');
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
             $table->timestamps();
         });

@@ -1,22 +1,20 @@
 <?php
 
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\CartController;
-use App\Http\Controllers\OrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\Cadastros\PerfilController;
-use App\Http\Controllers\Cadastros\UnidadesController;
-use App\Http\Controllers\Cadastros\ProdutosController;
-use App\Http\Controllers\Cadastros\CategoriasProdutosController;
-use App\Http\Controllers\Cadastros\FornecedorController;
-use App\Http\Controllers\Cadastros\UnidadesMedidaController;
-use App\Http\Controllers\Cadastros\EstoqueController;
-use App\Http\Controllers\Cadastros\TipoVinculoController;  
-use App\Http\Controllers\Cadastros\SetorController;
 
+use App\Http\Controllers\Cadastros\UnidadesController;
+use App\Http\Controllers\Cadastros\FornecedorController;
+use App\Http\Controllers\Cadastros\ProdutoController;
+use App\Http\Controllers\Cadastros\UnidadeMedidaController;
+use App\Http\Controllers\Cadastros\EstoqueController as CadastrosEstoqueController;
+use App\Http\Controllers\Cadastros\TipoVinculoController;
+use App\Http\Controllers\Cadastros\GrupoProdutoController;
+use App\Http\Controllers\Cadastros\PoloController;
+use App\Http\Controllers\EstoqueController;
+use App\Http\Controllers\Cadastros\SetorController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -34,17 +32,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
-    Route::apiResource('products', ProductController::class);
-    Route::get('count-below-minimum-stock', [ProductController::class, 'countProductsBelowMinimumStock']);
-    Route::get('count-expiring-soon', [ProductController::class, 'countProductsExpiringSoon']);
     Route::get('countUsers', [UserController::class, 'countUsers']);
-    Route::get('/search', [ProductController::class, 'search']);
-    Route::post('/cart/add', [CartController::class, 'addItem']);
-    Route::get('/cart/items', [CartController::class, 'viewCart']);
-    Route::delete('/cart/remove/{id}', [CartController::class, 'removeItem']);
-    Route::delete('/cart/items', [CartController::class, 'clearCart']);
-    Route::put('/cart/update/{id}', [CartController::class, 'updateItemQuantity']);
-    Route::apiResource('orders', OrderController::class);
 
     // Cadastro de Usuários
 });
@@ -59,12 +47,6 @@ Route::post('/user/list', [AuthController::class, 'listAll']);
 Route::post('/user/listData',  [AuthController::class, 'listData']);
 Route::post('/user/delete/{id}',  [AuthController::class, 'delete']);
 
-Route::post('/perfil/add', [PerfilController::class, 'add']);
-Route::post('/perfil/update', [PerfilController::class, 'update']);
-Route::post('/perfil/list', [PerfilController::class, 'listAll']);
-Route::post('/perfil/listData', [PerfilController::class, 'listData']);
-Route::post('/perfil/delete/{id}', [PerfilController::class, 'delete']);
-
 Route::post('/tipoVinculo/add', [TipoVinculoController::class, 'add']);
 Route::post('/tipoVinculo/update', [TipoVinculoController::class, 'update']);
 Route::post('/tipoVinculo/list', [TipoVinculoController::class, 'listAll']);
@@ -76,6 +58,15 @@ Route::post('/setor/update', [SetorController::class, 'update']);
 Route::post('/setor/list', [SetorController::class, 'listAll']);
 Route::post('/setor/listData', [SetorController::class, 'listData']);
 Route::post('/setor/delete/{id}', [SetorController::class, 'delete']);
+// Rotas para polo
+Route::post('/polo/add', [PoloController::class, 'add']);
+Route::post('/polo/update', [PoloController::class, 'update']);
+Route::post('/polo/list', [PoloController::class, 'listAll']);
+Route::post('/polo/listData', [PoloController::class, 'listData']);
+Route::post('/polo/delete/{id}', [PoloController::class, 'delete']);
+Route::post('/polo/toggleStatus', [PoloController::class, 'toggleStatus']);
+
+// Rotas antigas de setores removidas - usar /unidades
 
 Route::post('/unidades/add', [UnidadesController::class, 'add']);
 Route::post('/unidades/update', [UnidadesController::class, 'update']);
@@ -83,33 +74,48 @@ Route::post('/unidades/list', [UnidadesController::class, 'listAll']);
 Route::post('/unidades/listData', [UnidadesController::class, 'listData']);
 Route::post('/unidades/delete/{id}', [UnidadesController::class, 'delete']);
 
-Route::post('/produtos/add', [ProdutosController::class, 'add']);
-Route::post('/produtos/update', [ProdutosController::class, 'update']);
-Route::post('/produtos/list', [ProdutosController::class, 'listAll']);
-Route::post('/produtos/listData', [ProdutosController::class, 'listData']);
-Route::post('/produtos/delete/{id}', [ProdutosController::class, 'delete']);
+// Rotas dos módulos produtos, categoriasProdutos e unidadesMedida foram removidas
+// Use os novos módulos: Produto, GrupoProduto e UnidadeMedida
 
-Route::post('/categoriasProdutos/add', [CategoriasProdutosController::class, 'add']);
-Route::post('/categoriasProdutos/update', [CategoriasProdutosController::class, 'update']);
-Route::post('/categoriasProdutos/list', [CategoriasProdutosController::class, 'listAll']);
-Route::post('/categoriasProdutos/listData', [CategoriasProdutosController::class, 'listData']);
-Route::post('/categoriasProdutos/delete/{id}', [CategoriasProdutosController::class, 'delete']);
+// Rotas para tabela nova `unidade_medida` (singular)
+Route::post('/unidadeMedida/add', [UnidadeMedidaController::class, 'add']);
+Route::post('/unidadeMedida/update', [UnidadeMedidaController::class, 'update']);
+Route::post('/unidadeMedida/list', [UnidadeMedidaController::class, 'listAll']);
+Route::post('/unidadeMedida/listData', [UnidadeMedidaController::class, 'listData']);
+Route::post('/unidadeMedida/delete/{id}', [UnidadeMedidaController::class, 'delete']);
 
-Route::post('/unidadesMedida/add', [UnidadesMedidaController::class, 'add']);
-Route::post('/unidadesMedida/update', [UnidadesMedidaController::class, 'update']);
-Route::post('/unidadesMedida/list', [UnidadesMedidaController::class, 'listAll']);
-Route::post('/unidadesMedida/listData', [UnidadesMedidaController::class, 'listData']);
-Route::post('/unidadesMedida/delete/{id}', [UnidadesMedidaController::class, 'delete']);
-
+// Rotas para fornecedores
 Route::post('/fornecedores/add', [FornecedorController::class, 'add']);
 Route::post('/fornecedores/update', [FornecedorController::class, 'update']);
 Route::post('/fornecedores/list', [FornecedorController::class, 'listAll']);
 Route::post('/fornecedores/listData', [FornecedorController::class, 'listData']);
+Route::post('/fornecedores/delete', [FornecedorController::class, 'delete']);
+Route::post('/fornecedores/toggleStatus', [FornecedorController::class, 'toggleStatus']);
 
-Route::post('/estoque/add', [EstoqueController::class, 'add']);
-Route::post('/estoque/update', [EstoqueController::class, 'update']);
-Route::post('/estoque/list', [EstoqueController::class, 'listAll']);
-Route::post('/estoque/listData', [EstoqueController::class, 'listData']);
-Route::post('/estoque/delete/{id}', [EstoqueController::class, 'delete']);
+// Rotas para produtos
+Route::post('/produtos/add', [ProdutoController::class, 'add']);
+Route::post('/produtos/update', [ProdutoController::class, 'update']);
+Route::post('/produtos/list', [ProdutoController::class, 'listAll']);
+Route::post('/produtos/listData', [ProdutoController::class, 'listData']);
+Route::post('/produtos/delete', [ProdutoController::class, 'delete']);
+Route::post('/produtos/toggleStatus', [ProdutoController::class, 'toggleStatus']);
+Route::post('/produtos/dadosAuxiliares', [ProdutoController::class, 'getDadosAuxiliares']);
 
-// teste
+// Rotas antigas do estoque (para manter compatibilidade)
+Route::post('/estoque/add', [CadastrosEstoqueController::class, 'add']);
+Route::post('/estoque/update', [CadastrosEstoqueController::class, 'update']);
+Route::post('/estoque/list', [CadastrosEstoqueController::class, 'listAll']);
+Route::post('/estoque/listData', [CadastrosEstoqueController::class, 'listData']);
+Route::post('/estoque/delete/{id}', [CadastrosEstoqueController::class, 'delete']);
+
+// Novas rotas do módulo de estoque
+Route::get('/estoque/unidade/{unidadeId}', [EstoqueController::class, 'listarPorUnidade']);
+Route::get('/estoque/{id}', [EstoqueController::class, 'show']);
+Route::put('/estoque/{id}/quantidade-minima', [EstoqueController::class, 'atualizarQuantidadeMinima']);
+Route::put('/estoque/{id}/status', [EstoqueController::class, 'atualizarStatus']);
+
+Route::post('/grupoProduto/add', [GrupoProdutoController::class, 'add']);
+Route::post('/grupoProduto/update', [GrupoProdutoController::class, 'update']);
+Route::post('/grupoProduto/list', [GrupoProdutoController::class, 'listAll']);
+Route::post('/grupoProduto/listData', [GrupoProdutoController::class, 'listData']);
+Route::post('/grupoProduto/delete/{id}', [GrupoProdutoController::class, 'delete']);

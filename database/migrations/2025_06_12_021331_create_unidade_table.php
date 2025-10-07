@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateProdutosTable extends Migration
+class CreateUnidadeTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,15 +13,15 @@ class CreateProdutosTable extends Migration
      */
     public function up()
     {
-        Schema::create('produtos', function (Blueprint $table) {
+        Schema::create('unidades', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('polo_id')->constrained('polo')->onDelete('restrict');
             $table->string('nome');
-            $table->string('marca')->nullable();
-            $table->string('codigo_simpras')->nullable();
-            $table->string('codigo_barras')->nullable();
-            $table->foreignId('grupo_produto_id')->constrained('grupo_produto')->onDelete('restrict');
-            $table->foreignId('unidade_medida_id')->constrained('unidade_medida')->onDelete('restrict');
+            $table->string('codigo_unidade')->unique();
+            $table->string('descricao')->nullable();
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
+            $table->boolean('estoque')->default(false);
+            $table->enum('tipo', ['Medicamento', 'Material', 'Medicamento_Material'])->default('Material');
             $table->timestamps();
         });
     }
@@ -33,6 +33,6 @@ class CreateProdutosTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('produtos');
+        Schema::dropIfExists('unidades');
     }
 }
