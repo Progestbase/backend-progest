@@ -71,11 +71,11 @@ Route::post('/tipoVinculo/list', [TipoVinculoController::class, 'listAll']);
 Route::post('/tipoVinculo/listData', [TipoVinculoController::class, 'listData']);
 Route::post('/tipoVinculo/delete/{id}', [TipoVinculoController::class, 'delete']);
 
-Route::post('/setores/add', [SetorController::class, 'add']);
-Route::post('/setores/update', [SetorController::class, 'update']);
-Route::post('/setores/list', [SetorController::class, 'listAll']);
-Route::post('/setores/listData', [SetorController::class, 'listData']);
-Route::post('/setores/delete/{id}', [SetorController::class, 'delete']);
+Route::post('/setor/add', [SetorController::class, 'add']);
+Route::post('/setor/update', [SetorController::class, 'update']);
+Route::post('/setor/list', [SetorController::class, 'listAll']);
+Route::post('/setor/listData', [SetorController::class, 'listData']);
+Route::post('/setor/delete/{id}', [SetorController::class, 'delete']);
 
 Route::post('/unidades/add', [UnidadesController::class, 'add']);
 Route::post('/unidades/update', [UnidadesController::class, 'update']);
