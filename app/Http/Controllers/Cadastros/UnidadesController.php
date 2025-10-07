@@ -19,8 +19,8 @@ class UnidadesController
         $data = $request->all();
 
         $validator = Validator::make($data['unidades'], [
+            'polo_id'       => 'required|exists:polo,id',
             'nome'          => 'required|string|max:255',
-            'codigo_unidade' => 'required|string|max:50|unique:unidades,codigo_unidade',
             'estoque'       => 'sometimes|boolean',
             'tipo'          => 'sometimes|in:Medicamento,Material',
         ]);
@@ -34,10 +34,10 @@ class UnidadesController
         }
 
         $unidades = new Unidades;
+        $unidades->polo_id        = $data['unidades']['polo_id'];
         $unidades->nome           = mb_strtoupper($data['unidades']['nome']);
-        $unidades->codigo_unidade = mb_strtoupper($data['unidades']['codigo_unidade']);
-        $unidades->descricao      = $data['unidades']['descricao'] ? $data['unidades']['descricao'] : '';
-        $unidades->status         = $data['unidades']['status'] ? $data['unidades']['status'] : 'A';
+        $unidades->descricao      = $data['unidades']['descricao'] ?? '';
+        $unidades->status         = $data['unidades']['status'] ?? 'A';
         $unidades->estoque        = $data['unidades']['estoque'] ?? false;
         $unidades->tipo           = $data['unidades']['tipo'] ?? 'Material';
 
@@ -51,27 +51,25 @@ class UnidadesController
         $data = $request->all();
         $filters = $data['filters'] ?? [];
 
-        // $paginate = isset($data['paginate']) ? $data['paginate'] : 50;
-        $unidades = $filters;
-        $unidadesQuery = Unidades::query();
+        $unidadesQuery = Unidades::with('polo');
+
         foreach ($filters as $condition) {
             foreach ($condition as $column => $value) {
-                // Aplica cada condição como cláusula where
                 $unidadesQuery->where($column, $value);
             }
         }
 
         if (!isset($data['paginate'])) {
             $unidades = $unidadesQuery
-                ->select('id', 'nome', 'codigo_unidade', 'descricao', 'status', 'estoque', 'tipo')
-                ->orderBy('nome')
-                // ->paginate($paginate)
-                ->get();;
-        } else {
-            $unidades = $unidadesQuery
-                ->select('id', 'nome', 'codigo_unidade', 'descricao', 'status', 'estoque', 'tipo')
+                ->select('id', 'polo_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
                 ->orderBy('nome')
                 ->get();
+        } else {
+            $per_page = $data['per_page'] ?? 50;
+            $unidades = $unidadesQuery
+                ->select('id', 'polo_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
+                ->orderBy('nome')
+                ->paginate($per_page);
         }
 
         return ['status' => true, 'data' => $unidades];
@@ -82,8 +80,8 @@ class UnidadesController
         $data = $request->all();
 
         $validator = Validator::make($data['unidades'], [
+            'polo_id'       => 'required|exists:polo,id',
             'nome'          => 'required|string|max:255',
-            'codigo_unidade' => 'required|string|max:50|unique:unidades,codigo_unidade,' . $data['unidades']['id'],
             'estoque'       => 'sometimes|boolean',
             'tipo'          => 'sometimes|in:Medicamento,Material',
         ]);
@@ -105,10 +103,10 @@ class UnidadesController
             ], 404);
         }
 
+        $unidades->polo_id        = $data['unidades']['polo_id'];
         $unidades->nome           = mb_strtoupper($data['unidades']['nome']);
-        $unidades->codigo_unidade = mb_strtoupper($data['unidades']['codigo_unidade']);
-        $unidades->descricao      = $data['unidades']['descricao'] ? $data['unidades']['descricao'] : '';
-        $unidades->status         = $data['unidades']['status'] ? $data['unidades']['status'] : 'A';
+        $unidades->descricao      = $data['unidades']['descricao'] ?? '';
+        $unidades->status         = $data['unidades']['status'] ?? 'A';
         $unidades->estoque        = $data['unidades']['estoque'] ?? $unidades->estoque;
         $unidades->tipo           = $data['unidades']['tipo'] ?? $unidades->tipo;
 
@@ -122,7 +120,14 @@ class UnidadesController
         $data = $request->all();
         $dataID = $data['id'];
 
-        $unidades = Unidades::find($dataID);
+        $unidades = Unidades::with('polo')->find($dataID);
+
+        if (!$unidades) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unidade não encontrada.'
+            ], 404);
+        }
 
         return ['status' => true, 'data' => $unidades];
     }
@@ -138,7 +143,7 @@ class UnidadesController
             ], 404);
         }
 
-        // Verificar usuários
+        // Verificar referências antes de deletar
         $references = $this->checkUnidadesReferences($id);
         if (!empty($references)) {
             return response()->json([
@@ -147,6 +152,7 @@ class UnidadesController
                 'references' => $references
             ], 422);
         }
+
         $unidades->delete();
 
         return response()->json([
@@ -155,26 +161,65 @@ class UnidadesController
         ], 200);
     }
 
+    public function toggleStatus(Request $request)
+    {
+        try {
+            $data = $request->all();
+
+            if (!isset($data['id'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'ID da unidade não fornecido'
+                ], 400);
+            }
+
+            $unidade = Unidades::find($data['id']);
+
+            if (!$unidade) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Unidade não encontrada'
+                ], 404);
+            }
+
+            // Toggle: A -> I ou I -> A
+            $unidade->status = $unidade->status === 'A' ? 'I' : 'A';
+            $unidade->save();
+
+            return response()->json([
+                'status' => true,
+                'data' => $unidade,
+                'message' => 'Status atualizado com sucesso'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao alterar status da unidade: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao alterar status da unidade'
+            ], 500);
+        }
+    }
+
     private function checkUnidadesReferences($id)
     {
         $references = [];
 
-        // Verificar usuários através do relacionamento users -> setores -> unidades
-        $userCount = DB::table('users')
-            ->join('usuario_setor', 'users.id', '=', 'usuario_setor.user_id')
-            ->join('setores', 'usuario_setor.setor_id', '=', 'setores.id')
-            ->where('setores.unidade_id', $id)
-            ->distinct('users.id')
-            ->count();
-
-        if ($userCount > 0) {
-            $references[] = 'usuários (' . $userCount . ')';
+        // Verificar estoque vinculado à unidade
+        $estoqueCount = DB::table('estoque')->where('unidade_id', $id)->count();
+        if ($estoqueCount > 0) {
+            $references[] = 'estoque (' . $estoqueCount . ' itens)';
         }
 
-        // Verificar setores vinculados à unidade
-        $setorCount = DB::table('setores')->where('unidade_id', $id)->count();
-        if ($setorCount > 0) {
-            $references[] = 'setores (' . $setorCount . ')';
+        // Verificar movimentações como origem
+        $movOrigemCount = DB::table('movimentacao')->where('unidade_origem_id', $id)->count();
+        if ($movOrigemCount > 0) {
+            $references[] = 'movimentações de origem (' . $movOrigemCount . ')';
+        }
+
+        // Verificar movimentações como destino
+        $movDestinoCount = DB::table('movimentacao')->where('unidade_destino_id', $id)->count();
+        if ($movDestinoCount > 0) {
+            $references[] = 'movimentações de destino (' . $movDestinoCount . ')';
         }
 
         return $references;

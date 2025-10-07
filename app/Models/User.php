@@ -50,12 +50,12 @@ class User extends Authenticatable
     ];
 
     /**
-     * Relacionamento com Setores (many-to-many)
-     * Um usuário pode pertencer a vários setores
+     * Relacionamento com Unidades (many-to-many)
+     * Um usuário pode pertencer a várias unidades
      */
-    public function setores()
+    public function unidades()
     {
-        return $this->belongsToMany(Setor::class, 'usuario_setor', 'user_id', 'setor_id')
+        return $this->belongsToMany(Unidades::class, 'usuario_unidade', 'user_id', 'unidade_id')
             ->withTimestamps();
     }
 

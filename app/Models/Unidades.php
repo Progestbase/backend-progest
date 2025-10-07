@@ -12,8 +12,8 @@ class Unidades extends Model
     protected $table = 'unidades';
 
     protected $fillable = [
+        'polo_id',
         'nome',
-        'codigo_unidade',
         'descricao',
         'status',
         'estoque',
@@ -23,6 +23,14 @@ class Unidades extends Model
     protected $casts = [
         'estoque' => 'boolean',
     ];
+
+    /**
+     * Relacionamento com polo
+     */
+    public function polo()
+    {
+        return $this->belongsTo(Polo::class, 'polo_id');
+    }
 
     /**
      * Obter produtos disponíveis para esta unidade baseado no tipo

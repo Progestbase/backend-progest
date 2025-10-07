@@ -14,7 +14,6 @@ use App\Http\Controllers\Cadastros\TipoVinculoController;
 use App\Http\Controllers\Cadastros\GrupoProdutoController;
 use App\Http\Controllers\Cadastros\PoloController;
 use App\Http\Controllers\EstoqueController;
-use App\Http\Controllers\Cadastros\SetorController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -53,11 +52,6 @@ Route::post('/tipoVinculo/list', [TipoVinculoController::class, 'listAll']);
 Route::post('/tipoVinculo/listData', [TipoVinculoController::class, 'listData']);
 Route::post('/tipoVinculo/delete/{id}', [TipoVinculoController::class, 'delete']);
 
-Route::post('/setor/add', [SetorController::class, 'add']);
-Route::post('/setor/update', [SetorController::class, 'update']);
-Route::post('/setor/list', [SetorController::class, 'listAll']);
-Route::post('/setor/listData', [SetorController::class, 'listData']);
-Route::post('/setor/delete/{id}', [SetorController::class, 'delete']);
 // Rotas para polo
 Route::post('/polo/add', [PoloController::class, 'add']);
 Route::post('/polo/update', [PoloController::class, 'update']);
@@ -73,6 +67,7 @@ Route::post('/unidades/update', [UnidadesController::class, 'update']);
 Route::post('/unidades/list', [UnidadesController::class, 'listAll']);
 Route::post('/unidades/listData', [UnidadesController::class, 'listData']);
 Route::post('/unidades/delete/{id}', [UnidadesController::class, 'delete']);
+Route::post('/unidades/toggleStatus', [UnidadesController::class, 'toggleStatus']);
 
 // Rotas dos módulos produtos, categoriasProdutos e unidadesMedida foram removidas
 // Use os novos módulos: Produto, GrupoProduto e UnidadeMedida

@@ -17,11 +17,10 @@ class CreateUnidadeTable extends Migration
             $table->id();
             $table->foreignId('polo_id')->constrained('polo')->onDelete('restrict');
             $table->string('nome');
-            $table->string('codigo_unidade')->unique();
             $table->string('descricao')->nullable();
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');
             $table->boolean('estoque')->default(false);
-            $table->enum('tipo', ['Medicamento', 'Material', 'Medicamento_Material'])->default('Material');
+            $table->enum('tipo', ['Medicamento', 'Material'])->default('Material');
             $table->timestamps();
         });
     }
