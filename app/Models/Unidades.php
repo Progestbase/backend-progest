@@ -63,6 +63,7 @@ class Unidades extends Model
      */
     public function usuarios()
     {
-        return $this->hasMany(User::class, 'unidade');
+        // Relacionamento many-to-many via tabela pivot 'unidade_user'
+        return $this->belongsToMany(User::class, 'unidade_user', 'unidade_id', 'user_id');
     }
 }

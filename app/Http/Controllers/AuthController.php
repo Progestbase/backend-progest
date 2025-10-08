@@ -100,6 +100,22 @@ class AuthController extends Controller
 
         $user->save();
 
+        // Vincular unidades se informado (aceita array de ids ou array de objetos com 'id')
+        if (!empty($data['unidades_ids']) && is_array($data['unidades_ids'])) {
+            $unidadeIds = array_map(function ($u) {
+                if (is_array($u) && isset($u['id'])) return $u['id'];
+                if (is_object($u) && isset($u->id)) return $u->id;
+                return $u;
+            }, $data['unidades_ids']);
+            // Remover valores inválidos
+            $unidadeIds = array_filter($unidadeIds, function ($id) {
+                return is_numeric($id) && $id > 0;
+            });
+            if (!empty($unidadeIds)) {
+                $user->unidades()->sync($unidadeIds);
+            }
+        }
+
         return ['status' => true, 'data' => $user];
     }
 
@@ -124,6 +140,19 @@ class AuthController extends Controller
             $user->password = bcrypt($data['password']);
             $user->save();
         }
+
+        // Sync unidades quando fornecido
+        if (isset($data['unidades_ids']) && is_array($data['unidades_ids'])) {
+            $unidadeIds = array_map(function ($u) {
+                if (is_array($u) && isset($u['id'])) return $u['id'];
+                if (is_object($u) && isset($u->id)) return $u->id;
+                return $u;
+            }, $data['unidades_ids']);
+            $unidadeIds = array_filter($unidadeIds, function ($id) {
+                return is_numeric($id) && $id > 0;
+            });
+            $user->unidades()->sync($unidadeIds);
+        }
         return response()->json(['status' => true, 'data' => $user]);
     }
 
@@ -133,10 +162,10 @@ class AuthController extends Controller
             'id',
             'name',
             'email',
-            'telefone',
-            'matricula',
-            'data_nascimento',
             'cpf',
+            'matricula',
+            'telefone',
+            'data_nascimento',
             'status',
             'tipo_vinculo'
         )->orderby('name')->get();
@@ -151,14 +180,15 @@ class AuthController extends Controller
         }
         $tipoVinculo = $user->tipo_vinculo ? TipoVinculo::find($user->tipo_vinculo) : null;
 
-        // Buscar setores do usuário com suas unidades
-        $setores = $user->setores()->with('unidade')->get();
+        // Incluir unidades vinculadas na resposta
+    // Prefix columns with table name to avoid ambiguous column error when the pivot is joined
+    $unidades = $user->unidades()->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo')->get();
 
         return [
             'status' => true,
             'data' => $user,
-            'setores' => $setores,
             'tipo_vinculo' => $tipoVinculo,
+            'unidades' => $unidades,
         ];
     }
 

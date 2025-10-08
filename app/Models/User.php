@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\Unidades;
 
 class User extends Authenticatable
 {
@@ -55,8 +56,9 @@ class User extends Authenticatable
      */
     public function unidades()
     {
-        return $this->belongsToMany(Unidades::class, 'usuario_unidade', 'user_id', 'unidade_id')
-            ->withTimestamps();
+        // O model `Unidades` está no plural, então o Laravel pode inferir a chave pivot errada
+        // Definimos explicitamente as chaves pivot: 'user_id' (para este modelo) e 'unidade_id' (para Unidades)
+        return $this->belongsToMany(Unidades::class, 'unidade_user', 'user_id', 'unidade_id');
     }
 
     public static function boot()
