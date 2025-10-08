@@ -14,6 +14,7 @@ use App\Http\Controllers\Cadastros\TipoVinculoController;
 use App\Http\Controllers\Cadastros\GrupoProdutoController;
 use App\Http\Controllers\Cadastros\PoloController;
 use App\Http\Controllers\EstoqueController;
+use App\Http\Controllers\EntradaController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -95,6 +96,11 @@ Route::post('/produtos/listData', [ProdutoController::class, 'listData']);
 Route::post('/produtos/delete', [ProdutoController::class, 'delete']);
 Route::post('/produtos/toggleStatus', [ProdutoController::class, 'toggleStatus']);
 Route::post('/produtos/dadosAuxiliares', [ProdutoController::class, 'getDadosAuxiliares']);
+
+Route::post('/entrada/add', [EntradaController::class, 'add']);
+Route::post('/entrada/list', [EntradaController::class, 'list']);
+Route::post('/entrada/update', [EntradaController::class, 'update']);
+Route::post('/entrada/delete', [EntradaController::class, 'delete']);
 
 // Rotas antigas do estoque (para manter compatibilidade)
 Route::post('/estoque/add', [CadastrosEstoqueController::class, 'add']);

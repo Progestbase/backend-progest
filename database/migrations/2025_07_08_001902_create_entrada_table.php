@@ -16,8 +16,7 @@ class CreateEntradaTable extends Migration
         Schema::create('entrada', function (Blueprint $table) {
             $table->id();
             $table->string('nota_fiscal');
-            $table->date('data_emissao_nota_fiscal');
-            $table->dateTime('data_hora');
+            $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
             $table->foreignId('fornecedor_id')->constrained('fornecedores')->onDelete('restrict');
             $table->timestamps();
         });

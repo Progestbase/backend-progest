@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Entrada extends Model
 {
     protected $table = 'entrada';
-    protected $fillable = ['nota_fiscal', 'data_emissao_nota_fiscal', 'data_hora', 'fornecedor_id'];
+    protected $fillable = ['nota_fiscal', 'unidade_id', 'fornecedor_id'];
+
+    public function unidade()
+    {
+        return $this->belongsTo(Unidades::class, 'unidade_id');
+    }
+
     public function fornecedor()
     {
         return $this->belongsTo(Fornecedor::class);

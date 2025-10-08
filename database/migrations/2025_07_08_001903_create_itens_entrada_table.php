@@ -17,11 +17,7 @@ class CreateItensEntradaTable extends Migration
             $table->id();
             $table->foreignId('entrada_id')->constrained('entrada')->onDelete('restrict');
             $table->foreignId('produto_id')->constrained('produtos')->onDelete('restrict');
-            $table->string('lote');
-            $table->decimal('valor_unitario', 15, 2);
             $table->integer('quantidade');
-            $table->date('data_fabricacao')->nullable();
-            $table->date('data_vencimento')->nullable();
             $table->timestamps();
         });
     }
