@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Entrada;
 use App\Models\Estoque;
+use App\Models\EstoqueLote;
 use App\Models\ItensEntrada;
 use App\Models\Produto;
 use App\Models\Unidades;
@@ -29,6 +30,9 @@ class EntradaController extends Controller
             'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
             'itens.*.quantidade' => 'required|integer|min:1',
+            'itens.*.lote' => 'required|string|max:50',
+            'itens.*.data_vencimento' => 'required|date|after:today',
+            'itens.*.data_fabricacao' => 'nullable|date|before_or_equal:today',
         ], [
             'nota_fiscal.required' => 'A nota fiscal é obrigatória.',
             'unidade_id.required' => 'A unidade é obrigatória.',
@@ -43,6 +47,13 @@ class EntradaController extends Controller
             'itens.*.quantidade.required' => 'Quantidade é obrigatória em todos os itens.',
             'itens.*.quantidade.integer' => 'Quantidade deve ser um número inteiro.',
             'itens.*.quantidade.min' => 'Quantidade deve ser ao menos 1.',
+            'itens.*.lote.required' => 'O lote é obrigatório em todos os itens.',
+            'itens.*.lote.max' => 'O lote deve ter no máximo 50 caracteres.',
+            'itens.*.data_vencimento.required' => 'A data de vencimento é obrigatória.',
+            'itens.*.data_vencimento.date' => 'A data de vencimento deve ser uma data válida.',
+            'itens.*.data_vencimento.after' => 'A data de vencimento deve ser posterior à data atual.',
+            'itens.*.data_fabricacao.date' => 'A data de fabricação deve ser uma data válida.',
+            'itens.*.data_fabricacao.before_or_equal' => 'A data de fabricação não pode ser futura.',
         ]);
 
         if ($validator->fails()) {
@@ -85,8 +96,12 @@ class EntradaController extends Controller
                         'entrada_id' => $entrada->id,
                         'produto_id' => $produto->id,
                         'quantidade' => $item['quantidade'],
+                        'lote' => mb_strtoupper(trim($item['lote'])),
+                        'data_vencimento' => $item['data_vencimento'],
+                        'data_fabricacao' => $item['data_fabricacao'] ?? null,
                     ]);
 
+                    // Atualizar ou criar registro de estoque geral
                     $estoque = Estoque::firstOrCreate(
                         [
                             'produto_id' => $produto->id,
@@ -106,6 +121,23 @@ class EntradaController extends Controller
                     }
 
                     $estoque->save();
+
+                    // Atualizar ou criar registro de estoque por lote
+                    $estoqueLote = EstoqueLote::firstOrCreate(
+                        [
+                            'unidade_id' => $unidade->id,
+                            'produto_id' => $produto->id,
+                            'lote' => mb_strtoupper(trim($item['lote'])),
+                        ],
+                        [
+                            'quantidade_disponivel' => 0,
+                            'data_vencimento' => $item['data_vencimento'],
+                            'data_fabricacao' => $item['data_fabricacao'] ?? null,
+                        ]
+                    );
+
+                    $estoqueLote->quantidade_disponivel += $itemEntrada->quantidade;
+                    $estoqueLote->save();
                 }
 
                 return $entrada;
@@ -150,7 +182,8 @@ class EntradaController extends Controller
             $perPage = $data['per_page'] ?? 15;
 
             $query = Entrada::with([
-                'unidade:id,nome,codigo_unidade,tipo',
+                // 'codigo_unidade' não existe na tabela 'unidades' (migration), removido para evitar SQL error
+                'unidade:id,nome,tipo',
                 'fornecedor:id,razao_social_nome,tipo_pessoa,status',
                 'itens.produto:id,nome,marca,grupo_produto_id,unidade_medida_id,status',
                 'itens.produto.grupoProduto:id,nome,tipo',
@@ -191,6 +224,9 @@ class EntradaController extends Controller
                         return [
                             'id' => $item->id,
                             'quantidade' => $item->quantidade,
+                            'lote' => $item->lote,
+                            'data_vencimento' => $item->data_vencimento,
+                            'data_fabricacao' => $item->data_fabricacao,
                             'produto' => [
                                 'id' => $item->produto->id,
                                 'nome' => $item->produto->nome,
@@ -235,6 +271,9 @@ class EntradaController extends Controller
             'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
             'itens.*.quantidade' => 'required|integer|min:1',
+            'itens.*.lote' => 'required|string|max:50',
+            'itens.*.data_vencimento' => 'required|date|after:today',
+            'itens.*.data_fabricacao' => 'nullable|date|before_or_equal:today',
         ]);
 
         if ($validator->fails()) {
@@ -257,8 +296,9 @@ class EntradaController extends Controller
 
         try {
             $entradaAtualizada = DB::transaction(function () use ($data, $entrada, $unidade) {
-                // Reverter estoque dos itens atuais
+                // Reverter estoque dos itens atuais (tanto estoque geral quanto lotes)
                 foreach ($entrada->itens as $itemExistente) {
+                    // Reverter estoque geral
                     $estoque = Estoque::where('produto_id', $itemExistente->produto_id)
                         ->where('unidade_id', $entrada->unidade_id)
                         ->first();
@@ -270,6 +310,22 @@ class EntradaController extends Controller
                         }
                         $estoque->status_disponibilidade = $estoque->quantidade_atual > 0 ? 'D' : 'I';
                         $estoque->save();
+                    }
+
+                    // Reverter estoque de lote
+                    if ($itemExistente->lote) {
+                        $estoqueLote = EstoqueLote::where('unidade_id', $entrada->unidade_id)
+                            ->where('produto_id', $itemExistente->produto_id)
+                            ->where('lote', $itemExistente->lote)
+                            ->first();
+
+                        if ($estoqueLote) {
+                            $estoqueLote->quantidade_disponivel -= $itemExistente->quantidade;
+                            if ($estoqueLote->quantidade_disponivel < 0) {
+                                $estoqueLote->quantidade_disponivel = 0;
+                            }
+                            $estoqueLote->save();
+                        }
                     }
                 }
 
@@ -295,8 +351,12 @@ class EntradaController extends Controller
                         'entrada_id' => $entrada->id,
                         'produto_id' => $produto->id,
                         'quantidade' => $item['quantidade'],
+                        'lote' => mb_strtoupper(trim($item['lote'])),
+                        'data_vencimento' => $item['data_vencimento'],
+                        'data_fabricacao' => $item['data_fabricacao'] ?? null,
                     ]);
 
+                    // Atualizar estoque geral
                     $estoque = Estoque::firstOrCreate(
                         [
                             'produto_id' => $produto->id,
@@ -312,6 +372,23 @@ class EntradaController extends Controller
                     $estoque->quantidade_atual += $itemEntrada->quantidade;
                     $estoque->status_disponibilidade = $estoque->quantidade_atual > 0 ? 'D' : 'I';
                     $estoque->save();
+
+                    // Atualizar ou criar estoque de lote
+                    $estoqueLote = EstoqueLote::firstOrCreate(
+                        [
+                            'unidade_id' => $unidade->id,
+                            'produto_id' => $produto->id,
+                            'lote' => mb_strtoupper(trim($item['lote'])),
+                        ],
+                        [
+                            'quantidade_disponivel' => 0,
+                            'data_vencimento' => $item['data_vencimento'],
+                            'data_fabricacao' => $item['data_fabricacao'] ?? null,
+                        ]
+                    );
+
+                    $estoqueLote->quantidade_disponivel += $itemEntrada->quantidade;
+                    $estoqueLote->save();
                 }
 
                 return $entrada;

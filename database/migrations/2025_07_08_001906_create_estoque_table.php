@@ -19,6 +19,7 @@ class CreateEstoqueTable extends Migration
             $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
             $table->integer('quantidade_atual');
             $table->integer('quantidade_minima');
+            $table->string('localizacao', 255)->nullable()->comment('Localização física do produto no estoque');
             $table->enum('status_disponibilidade', ['D', 'I'])->default('D')->comment('D = Disponível, I = Indisponível');
             $table->timestamps();
         });

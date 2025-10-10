@@ -16,6 +16,7 @@ class Estoque extends Model
         'unidade_id',
         'quantidade_atual',
         'quantidade_minima',
+        'localizacao',
         'status_disponibilidade',
     ];
 
@@ -35,6 +36,12 @@ class Estoque extends Model
     public function unidade()
     {
         return $this->belongsTo(Unidades::class, 'unidade_id');
+    }
+
+    public function lotes()
+    {
+        return $this->hasMany(EstoqueLote::class, 'unidade_id', 'unidade_id')
+            ->where('produto_id', $this->produto_id);
     }
 
     // Scopes

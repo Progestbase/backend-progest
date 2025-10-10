@@ -14,6 +14,7 @@ use App\Http\Controllers\Cadastros\TipoVinculoController;
 use App\Http\Controllers\Cadastros\GrupoProdutoController;
 use App\Http\Controllers\Cadastros\PoloController;
 use App\Http\Controllers\EstoqueController;
+use App\Http\Controllers\EstoqueLoteController;
 use App\Http\Controllers\EntradaController;
 /*
 |--------------------------------------------------------------------------
@@ -120,3 +121,7 @@ Route::post('/grupoProduto/update', [GrupoProdutoController::class, 'update']);
 Route::post('/grupoProduto/list', [GrupoProdutoController::class, 'listAll']);
 Route::post('/grupoProduto/listData', [GrupoProdutoController::class, 'listData']);
 Route::post('/grupoProduto/delete/{id}', [GrupoProdutoController::class, 'delete']);
+
+// Rotas para controle de lotes no estoque
+Route::post('/estoqueLote/list', [EstoqueLoteController::class, 'list']);
+Route::post('/estoqueLote/updateQuantidade', [EstoqueLoteController::class, 'updateQuantidade']);

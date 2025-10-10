@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateItensEntradaTable extends Migration
+class CreateEstoqueLoteTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,15 +13,18 @@ class CreateItensEntradaTable extends Migration
      */
     public function up()
     {
-        Schema::create('itens_entrada', function (Blueprint $table) {
+        Schema::create('estoque_lote', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('entrada_id')->constrained('entrada')->onDelete('restrict');
+            $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
             $table->foreignId('produto_id')->constrained('produtos')->onDelete('restrict');
-            $table->integer('quantidade');
             $table->string('lote', 50);
-            $table->date('data_fabricacao')->nullable();
+            $table->decimal('quantidade_disponivel', 10, 3)->default(0);
             $table->date('data_vencimento');
+            $table->date('data_fabricacao')->nullable();
             $table->timestamps();
+
+            // Chave única composta: unidade + produto + lote
+            $table->unique(['unidade_id', 'produto_id', 'lote'], 'unique_estoque_lote');
         });
     }
 
@@ -32,6 +35,6 @@ class CreateItensEntradaTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('itens_entrada');
+        Schema::dropIfExists('estoque_lote');
     }
 }

@@ -86,7 +86,7 @@ class EstoqueController extends Controller
                     'unidade' => [
                         'id' => $unidade->id,
                         'nome' => $unidade->nome,
-                        'codigo_unidade' => $unidade->codigo_unidade,
+                        // 'codigo_unidade' removido (coluna não existe na migration)
                         'tipo' => $unidade->tipo,
                     ],
                     'estoque' => $estoque,
