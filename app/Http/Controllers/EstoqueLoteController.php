@@ -36,7 +36,8 @@ class EstoqueLoteController extends Controller
                 'unidade:id,nome,tipo',
                 'produto:id,nome,marca,grupo_produto_id,unidade_medida_id',
                 'produto.grupoProduto:id,nome,tipo',
-                'produto.unidadeMedida:id,nome,abreviacao',
+                // 'abreviacao' não existe em unidade_medida (migration/model), removido
+                'produto.unidadeMedida:id,nome',
             ])
                 ->where('produto_id', $estoque->produto_id)
                 ->where('unidade_id', $estoque->unidade_id)
