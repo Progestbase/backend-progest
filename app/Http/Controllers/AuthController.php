@@ -8,7 +8,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use App\Models\TipoVinculo;
+use App\Models\Unidades;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -97,24 +99,39 @@ class AuthController extends Controller
 
         $user->tipo_vinculo = $data['user']['tipo_vinculo'] ?? null;
         $user->password = bcrypt($data['user']['password']);
-
-        $user->save();
-
-        // Vincular unidades se informado (aceita array de ids ou array de objetos com 'id')
-        if (!empty($data['unidades_ids']) && is_array($data['unidades_ids'])) {
-            $unidadeIds = array_map(function ($u) {
-                if (is_array($u) && isset($u['id'])) return $u['id'];
-                if (is_object($u) && isset($u->id)) return $u->id;
-                return $u;
-            }, $data['unidades_ids']);
-            // Remover valores inválidos
-            $unidadeIds = array_filter($unidadeIds, function ($id) {
-                return is_numeric($id) && $id > 0;
-            });
-            if (!empty($unidadeIds)) {
-                $user->unidades()->sync($unidadeIds);
+        DB::beginTransaction();
+        try {
+            $user->save();
+            $incoming = $data['unidades_ids'] ?? $data['unidades'] ?? [];
+            if (empty($incoming) && isset($data['user']) && is_array($data['user'])) {
+                $incoming = $data['user']['unidades_ids'] ?? $data['user']['unidades'] ?? [];
             }
+            if (is_array($incoming) && !empty($incoming)) {
+                $unidadeIds = array_map(function ($u) {
+                    if (is_array($u) && isset($u['id'])) return $u['id'];
+                    if (is_object($u) && isset($u->id)) return $u->id;
+                    return $u;
+                }, $incoming);
+                $unidadeIds = array_filter($unidadeIds, function ($id) {
+                    return is_numeric($id) && $id > 0;
+                });
+
+                if (!empty($unidadeIds)) {
+                    $validIds = \App\Models\Unidades::whereIn('id', $unidadeIds)->pluck('id')->toArray();
+                    $user->unidades()->sync($validIds);
+                }
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao salvar usuário e unidades: ' . $e->getMessage());
+            return response()->json(['status' => false, 'message' => 'Erro ao salvar usuário.'], 500);
         }
+
+        $user = User::with(['unidades' => function ($q) {
+            $q->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo');
+        }])->find($user->id);
 
         return ['status' => true, 'data' => $user];
     }
@@ -126,33 +143,53 @@ class AuthController extends Controller
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Usuário não encontrado'], 404);
         }
-        $user->update([
-            'name' => mb_strtoupper($data['name']),
-            'email' => mb_strtolower($data['email']),
-            'telefone' => isset($data['telefone']) ? preg_replace('/\D/', '', $data['telefone']) : null,
-            'matricula' => $data['matricula'],
-            'data_nascimento' => $data['data_nascimento'] ?? null,
-            'cpf' => preg_replace('/\D/', '', $data['cpf']),
-            'status' => $data['status'],
-            'tipo_vinculo' => $data['tipo_vinculo'] ?? null,
-        ]);
-        if (!empty($data['password'])) {
-            $user->password = bcrypt($data['password']);
-            $user->save();
+
+        DB::beginTransaction();
+        try {
+            $user->update([
+                'name' => mb_strtoupper($data['name']),
+                'email' => mb_strtolower($data['email']),
+                'telefone' => isset($data['telefone']) ? preg_replace('/\D/', '', $data['telefone']) : null,
+                'matricula' => $data['matricula'],
+                'data_nascimento' => $data['data_nascimento'] ?? null,
+                'cpf' => preg_replace('/\D/', '', $data['cpf']),
+                'status' => $data['status'],
+                'tipo_vinculo' => $data['tipo_vinculo'] ?? null,
+            ]);
+
+            if (!empty($data['password'])) {
+                $user->password = bcrypt($data['password']);
+                $user->save();
+            }
+
+            // Normalizar incoming: aceita 'unidades_ids' (ids) ou 'unidades' (array de objetos)
+            $incoming = $data['unidades_ids'] ?? $data['unidades'] ?? [];
+            if (is_array($incoming) && !empty($incoming)) {
+                $unidadeIds = array_map(function ($u) {
+                    if (is_array($u) && isset($u['id'])) return $u['id'];
+                    if (is_object($u) && isset($u->id)) return $u->id;
+                    return $u;
+                }, $incoming);
+                $unidadeIds = array_filter($unidadeIds, function ($id) {
+                    return is_numeric($id) && $id > 0;
+                });
+
+                // Validar existência
+                $validIds = Unidades::whereIn('id', $unidadeIds)->pluck('id')->toArray();
+                $user->unidades()->sync($validIds);
+            }
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao atualizar usuário e unidades: ' . $e->getMessage());
+            return response()->json(['status' => false, 'message' => 'Erro ao atualizar usuário.'], 500);
         }
 
-        // Sync unidades quando fornecido
-        if (isset($data['unidades_ids']) && is_array($data['unidades_ids'])) {
-            $unidadeIds = array_map(function ($u) {
-                if (is_array($u) && isset($u['id'])) return $u['id'];
-                if (is_object($u) && isset($u->id)) return $u->id;
-                return $u;
-            }, $data['unidades_ids']);
-            $unidadeIds = array_filter($unidadeIds, function ($id) {
-                return is_numeric($id) && $id > 0;
-            });
-            $user->unidades()->sync($unidadeIds);
-        }
+        $user = User::with(['unidades' => function ($q) {
+            $q->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo');
+        }])->find($user->id);
+
         return response()->json(['status' => true, 'data' => $user]);
     }
 
@@ -174,21 +211,21 @@ class AuthController extends Controller
 
     public function listData(Request $request)
     {
-        $user = User::find($request->id);
+        $user = User::with(['unidades' => function ($q) {
+            $q->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo');
+        }])->find($request->id);
+
         if (!$user) {
             return ['status' => false, 'message' => 'Usuário não encontrado'];
         }
-        $tipoVinculo = $user->tipo_vinculo ? TipoVinculo::find($user->tipo_vinculo) : null;
 
-        // Incluir unidades vinculadas na resposta
-    // Prefix columns with table name to avoid ambiguous column error when the pivot is joined
-    $unidades = $user->unidades()->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo')->get();
+        $tipoVinculo = $user->tipo_vinculo ? TipoVinculo::find($user->tipo_vinculo) : null;
 
         return [
             'status' => true,
             'data' => $user,
             'tipo_vinculo' => $tipoVinculo,
-            'unidades' => $unidades,
+            'unidades' => $user->unidades,
         ];
     }
 
