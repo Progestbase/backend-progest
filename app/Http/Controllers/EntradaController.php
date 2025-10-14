@@ -7,7 +7,7 @@ use App\Models\Estoque;
 use App\Models\EstoqueLote;
 use App\Models\ItensEntrada;
 use App\Models\Produto;
-use App\Models\Unidades;
+use App\Models\Setores;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Validator;
 class EntradaController extends Controller
 {
     /**
-     * Registrar uma nova entrada de produtos no estoque da unidade.
+     * Registrar uma nova entrada de produtos no estoque do setor.
      */
     public function add(Request $request)
     {
@@ -25,7 +25,7 @@ class EntradaController extends Controller
 
         $validator = Validator::make($data, [
             'nota_fiscal' => 'required|string|max:255',
-            'unidade_id' => 'required|exists:unidades,id',
+            'unidade_id' => 'required|exists:Setores,id',
             'fornecedor_id' => 'required|exists:fornecedores,id',
             'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
@@ -35,8 +35,8 @@ class EntradaController extends Controller
             'itens.*.data_fabricacao' => 'nullable|date|before_or_equal:today',
         ], [
             'nota_fiscal.required' => 'A nota fiscal é obrigatória.',
-            'unidade_id.required' => 'A unidade é obrigatória.',
-            'unidade_id.exists' => 'Unidade não encontrada.',
+            'unidade_id.required' => 'O setor é obrigatório.',
+            'unidade_id.exists' => 'Setor não encontrado.',
             'fornecedor_id.required' => 'O fornecedor é obrigatório.',
             'fornecedor_id.exists' => 'Fornecedor não encontrado.',
             'itens.required' => 'Informe ao menos um item para a entrada.',
@@ -64,12 +64,12 @@ class EntradaController extends Controller
             ], 422);
         }
 
-        $unidade = Unidades::find($data['unidade_id']);
+        $unidade = Setores::find($data['unidade_id']);
 
         if (!$unidade->estoque) {
             return response()->json([
                 'status' => false,
-                'message' => 'A unidade selecionada não possui controle de estoque.'
+                'message' => 'O setor selecionado não possui controle de estoque.'
             ], 400);
         }
 
@@ -89,7 +89,7 @@ class EntradaController extends Controller
                     }
 
                     if (!$produto->grupoProduto || $produto->grupoProduto->tipo !== $unidade->tipo) {
-                        throw new \RuntimeException('Produto "' . $produto->nome . '" não é compatível com o tipo da unidade.');
+                        throw new \RuntimeException('Produto "' . $produto->nome . '" não é compatível com o tipo do setor.');
                     }
 
                     $itemEntrada = ItensEntrada::create([
@@ -143,7 +143,7 @@ class EntradaController extends Controller
                 return $entrada;
             });
 
-            $entrada->load(['unidade', 'fornecedor', 'itens.produto']);
+            $entrada->load(['setor', 'fornecedor', 'itens.produto']);
 
             return response()->json([
                 'status' => true,
@@ -182,8 +182,8 @@ class EntradaController extends Controller
             $perPage = $data['per_page'] ?? 15;
 
             $query = Entrada::with([
-                // 'codigo_unidade' não existe na tabela 'unidades' (migration), removido para evitar SQL error
-                'unidade:id,nome,tipo',
+                // 'codigo_unidade' não existe na tabela 'Setores' (migration), removido para evitar SQL error
+                'setor:id,nome,tipo',
                 'fornecedor:id,razao_social_nome,tipo_pessoa,status',
                 'itens.produto:id,nome,marca,grupo_produto_id,unidade_medida_id,status',
                 'itens.produto.grupoProduto:id,nome,tipo',
@@ -218,7 +218,7 @@ class EntradaController extends Controller
                     'id' => $entrada->id,
                     'nota_fiscal' => $entrada->nota_fiscal,
                     'created_at' => $entrada->created_at,
-                    'unidade' => $entrada->unidade,
+                    'setor' => $entrada->setor,
                     'fornecedor' => $entrada->fornecedor,
                     'itens' => $entrada->itens->map(function (ItensEntrada $item) {
                         return [
@@ -266,7 +266,7 @@ class EntradaController extends Controller
         $validator = Validator::make($data, [
             'id' => 'required|exists:entrada,id',
             'nota_fiscal' => 'required|string|max:255',
-            'unidade_id' => 'required|exists:unidades,id',
+            'unidade_id' => 'required|exists:Setores,id',
             'fornecedor_id' => 'required|exists:fornecedores,id',
             'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
@@ -285,12 +285,12 @@ class EntradaController extends Controller
         }
 
         $entrada = Entrada::with(['itens'])->find($data['id']);
-        $unidade = Unidades::find($data['unidade_id']);
+        $unidade = Setores::find($data['unidade_id']);
 
         if (!$unidade->estoque) {
             return response()->json([
                 'status' => false,
-                'message' => 'A unidade selecionada não possui controle de estoque.'
+                'message' => 'O setor selecionado não possui controle de estoque.'
             ], 400);
         }
 
@@ -344,7 +344,7 @@ class EntradaController extends Controller
                     $produto = Produto::with('grupoProduto')->find($item['produto_id']);
 
                     if (!$produto || !$produto->grupoProduto || $produto->grupoProduto->tipo !== $unidade->tipo) {
-                        throw new \RuntimeException('Produto "' . $produto->nome . '" não é compatível com o tipo da unidade.');
+                        throw new \RuntimeException('Produto "' . $produto->nome . '" não é compatível com o tipo do setor.');
                     }
 
                     $itemEntrada = ItensEntrada::create([
@@ -394,7 +394,7 @@ class EntradaController extends Controller
                 return $entrada;
             });
 
-            $entradaAtualizada->load(['unidade', 'fornecedor', 'itens.produto']);
+            $entradaAtualizada->load(['setor', 'fornecedor', 'itens.produto']);
 
             return response()->json([
                 'status' => true,
@@ -480,3 +480,4 @@ class EntradaController extends Controller
         }
     }
 }
+

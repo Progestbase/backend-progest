@@ -9,9 +9,9 @@ class Entrada extends Model
     protected $table = 'entrada';
     protected $fillable = ['nota_fiscal', 'unidade_id', 'fornecedor_id'];
 
-    public function unidade()
+    public function setor()
     {
-        return $this->belongsTo(Unidades::class, 'unidade_id');
+        return $this->belongsTo(Setores::class, 'unidade_id');
     }
 
     public function fornecedor()

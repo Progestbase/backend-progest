@@ -15,7 +15,7 @@ class CreateEstoqueLoteTable extends Migration
     {
         Schema::create('estoque_lote', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
+            $table->foreignId('unidade_id')->constrained('setores')->onDelete('restrict');
             $table->foreignId('produto_id')->constrained('produtos')->onDelete('restrict');
             $table->string('lote', 50);
             $table->decimal('quantidade_disponivel', 10, 3)->default(0);

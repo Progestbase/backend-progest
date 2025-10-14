@@ -33,9 +33,9 @@ class Estoque extends Model
         return $this->belongsTo(Produto::class, 'produto_id');
     }
 
-    public function unidade()
+    public function setor()
     {
-        return $this->belongsTo(Unidades::class, 'unidade_id');
+        return $this->belongsTo(Setores::class, 'unidade_id');
     }
 
     public function lotes()
@@ -55,9 +55,9 @@ class Estoque extends Model
         return $query->where('status_disponibilidade', 'I');
     }
 
-    public function scopePorUnidade($query, $unidadeId)
+    public function scopePorSetor($query, $setorId)
     {
-        return $query->where('unidade_id', $unidadeId);
+        return $query->where('unidade_id', $setorId);
     }
 
     // Métodos auxiliares
@@ -72,31 +72,31 @@ class Estoque extends Model
     }
 
     /**
-     * Método estático para criar estoque inicial para todos os produtos de um tipo em uma unidade
+     * Método estático para criar estoque inicial para todos os produtos de um tipo em um setor
      */
-    public static function criarEstoqueInicialParaUnidade($unidadeId)
+    public static function criarEstoqueInicialParaSetor($setorId)
     {
-        $unidade = Unidades::find($unidadeId);
+        $setor = Setores::find($setorId);
 
-        if (!$unidade || !$unidade->estoque) {
+        if (!$setor || !$setor->estoque) {
             return;
         }
 
-        // Buscar todos os produtos do tipo compatível com a unidade
-        $produtos = Produto::whereHas('grupoProduto', function ($query) use ($unidade) {
-            $query->where('tipo', $unidade->tipo)->where('status', 'A');
+        // Buscar todos os produtos do tipo compatível com o setor
+        $produtos = Produto::whereHas('grupoProduto', function ($query) use ($setor) {
+            $query->where('tipo', $setor->tipo)->where('status', 'A');
         })->where('status', 'A')->get();
 
         foreach ($produtos as $produto) {
-            // Verificar se já existe estoque para este produto nesta unidade
+            // Verificar se já existe estoque para este produto neste setor
             $estoqueExistente = self::where('produto_id', $produto->id)
-                ->where('unidade_id', $unidadeId)
+                ->where('unidade_id', $setorId)
                 ->first();
 
             if (!$estoqueExistente) {
                 self::create([
                     'produto_id' => $produto->id,
-                    'unidade_id' => $unidadeId,
+                    'unidade_id' => $setorId,
                     'quantidade_atual' => 0,
                     'quantidade_minima' => 0,
                     'status_disponibilidade' => 'D'
@@ -106,7 +106,7 @@ class Estoque extends Model
     }
 
     /**
-     * Método estático para criar estoque em todas as unidades compatíveis quando um produto é criado
+     * Método estático para criar estoque em todas os setores compatíveis quando um produto é criado
      */
     public static function criarEstoqueParaNovoProduto($produtoId)
     {
@@ -116,22 +116,22 @@ class Estoque extends Model
             return;
         }
 
-        // Buscar todas as unidades que têm estoque e são do tipo compatível
-        $unidades = Unidades::where('estoque', true)
+        // Buscar todas os setores que têm estoque e são do tipo compatível
+        $setores = Setores::where('estoque', true)
             ->where('tipo', $produto->grupoProduto->tipo)
             ->where('status', 'A')
             ->get();
 
-        foreach ($unidades as $unidade) {
-            // Verificar se já existe estoque para este produto nesta unidade
+        foreach ($setores as $setor) {
+            // Verificar se já existe estoque para este produto neste setor
             $estoqueExistente = self::where('produto_id', $produtoId)
-                ->where('unidade_id', $unidade->id)
+                ->where('unidade_id', $setor->id)
                 ->first();
 
             if (!$estoqueExistente) {
                 self::create([
                     'produto_id' => $produtoId,
-                    'unidade_id' => $unidade->id,
+                    'unidade_id' => $setor->id,
                     'quantidade_atual' => 0,
                     'quantidade_minima' => 0,
                     'status_disponibilidade' => 'D'

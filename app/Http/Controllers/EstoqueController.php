@@ -3,39 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\Estoque;
-use App\Models\Unidades;
+use App\Models\Setores;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
 class EstoqueController extends Controller
 {
     /**
-     * Listar estoque por unidade com informações detalhadas do produto
-     * 
-     * @param int $unidadeId
+     * Listar estoque por setor com informações detalhadas do produto
+     *
+     * @param int $setorId
      * @return JsonResponse
      */
-    public function listarPorUnidade($unidadeId): JsonResponse
+    public function listarPorSetor($setorId): JsonResponse
     {
         try {
-            // Verificar se a unidade existe e possui estoque
-            $unidade = Unidades::find($unidadeId);
+            // Verificar se o setor existe e possui estoque
+            $setor = Setores::find($setorId);
 
-            if (!$unidade) {
+            if (!$setor) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unidade não encontrada.'
+                    'message' => 'Setor não encontrado.'
                 ], 404);
             }
 
-            if (!$unidade->estoque) {
+            if (!$setor->estoque) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Esta unidade não possui controle de estoque.'
+                    'message' => 'Este setor não possui controle de estoque.'
                 ], 400);
             }
 
-            // Buscar estoque da unidade com informações do produto
+            // Buscar estoque do setor com informações do produto
             $estoque = Estoque::with([
                 'produto' => function ($query) {
                     $query->select('id', 'nome', 'marca', 'codigo_simpras', 'codigo_barras', 'grupo_produto_id', 'unidade_medida_id', 'status');
@@ -47,7 +47,7 @@ class EstoqueController extends Controller
                     $query->select('id', 'nome');
                 }
             ])
-                ->where('unidade_id', $unidadeId)
+                ->where('unidade_id', $setorId)
                 ->get()
                 ->map(function ($item) {
                     return [
@@ -83,11 +83,11 @@ class EstoqueController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'unidade' => [
-                        'id' => $unidade->id,
-                        'nome' => $unidade->nome,
-                        // 'codigo_unidade' removido (coluna não existe na migration)
-                        'tipo' => $unidade->tipo,
+                    'setor' => [
+                        'id' => $setor->id,
+                        'nome' => $setor->nome,
+                        // 'codigo_setor' removido (coluna não existe na migration)
+                        'tipo' => $setor->tipo,
                     ],
                     'estoque' => $estoque,
                     'resumo' => [
@@ -118,7 +118,7 @@ class EstoqueController extends Controller
             $estoque = Estoque::with([
                 'produto.grupoProduto',
                 'produto.unidadeMedida',
-                'unidade'
+                'setor'
             ])->find($id);
 
             if (!$estoque) {
@@ -138,7 +138,7 @@ class EstoqueController extends Controller
                     'status_disponibilidade_texto' => $estoque->status_disponibilidade === 'D' ? 'Disponível' : 'Indisponível',
                     'abaixo_minimo' => $estoque->isAbaixoMinimo(),
                     'produto' => $estoque->produto,
-                    'unidade' => $estoque->unidade,
+                    'setor' => $estoque->setor,
                     'created_at' => $estoque->created_at,
                     'updated_at' => $estoque->updated_at,
                 ]

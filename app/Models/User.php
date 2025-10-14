@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\Unidades;
+use App\Models\Setores;
 
 class User extends Authenticatable
 {
@@ -51,14 +51,14 @@ class User extends Authenticatable
     ];
 
     /**
-     * Relacionamento com Unidades (many-to-many)
-     * Um usuário pode pertencer a várias unidades
+     * Relacionamento com Setores (many-to-many)
+     * Um usuário pode pertencer a vários setores
      */
-    public function unidades()
+    public function setores()
     {
-        // O model `Unidades` está no plural, então o Laravel pode inferir a chave pivot errada
-        // Definimos explicitamente as chaves pivot: 'user_id' (para este modelo) e 'unidade_id' (para Unidades)
-        return $this->belongsToMany(Unidades::class, 'unidade_user', 'user_id', 'unidade_id');
+        // O model `Setores` está no plural, então o Laravel pode inferir a chave pivot errada
+        // Definimos explicitamente as chaves pivot: 'user_id' (para este modelo) e 'setor_id' (para Setores)
+        return $this->belongsToMany(Setores::class, 'setor_user', 'user_id', 'setor_id');
     }
 
     public static function boot()

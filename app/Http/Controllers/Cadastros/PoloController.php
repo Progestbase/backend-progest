@@ -194,11 +194,11 @@ class PoloController
                 ], 404);
             }
 
-            // Verificar se há unidades vinculadas
-            if ($polo->unidades()->count() > 0) {
+            // Verificar se há setores vinculados
+            if ($polo->setores()->count() > 0) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Não é possível deletar polo com unidades vinculadas'
+                    'message' => 'Não é possível deletar polo com setores vinculados'
                 ], 400);
             }
 

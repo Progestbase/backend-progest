@@ -27,11 +27,11 @@ class EstoqueLote extends Model
     ];
 
     /**
-     * Relacionamento com Unidades
+     * Relacionamento com Setores
      */
-    public function unidade()
+    public function setor()
     {
-        return $this->belongsTo(Unidades::class, 'unidade_id');
+        return $this->belongsTo(Setores::class, 'unidade_id');
     }
 
     /**
@@ -43,11 +43,11 @@ class EstoqueLote extends Model
     }
 
     /**
-     * Scope para filtrar por unidade
+     * Scope para filtrar por setor
      */
-    public function scopePorUnidade($query, $unidadeId)
+    public function scopePorSetor($query, $setorId)
     {
-        return $query->where('unidade_id', $unidadeId);
+        return $query->where('unidade_id', $setorId);
     }
 
     /**

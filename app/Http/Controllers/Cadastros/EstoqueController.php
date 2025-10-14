@@ -6,7 +6,7 @@ use App\Models\Estoque;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Unidades;
+use App\Models\Setores;
 use Illuminate\Support\Facades\Validator;
 
 use Illuminate\Support\Facades\DB;
@@ -79,10 +79,10 @@ class EstoqueController
 
     public function update(Request $request)
     {
-        
+
         $data = $request->all();
         $id = $data['fornecedor']['id'];
-        
+
         // Verifica se o fornecedor existe
         $estoque = Estoque::find($id);
 
@@ -91,7 +91,7 @@ class EstoqueController
                 'status' => false,
                 'message' => 'Fornecedor não encontrado'
             ], 404);
-        }   
+        }
 
         $validator = Validator::make($data['fornecedor'], [
             'produto_id'       => 'required|string|max:50|unique:estoque,produto_id,' . $id,

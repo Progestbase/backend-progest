@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use App\Models\User;
 use App\Models\TipoVinculo;
-use App\Models\Unidades;
+use App\Models\Setores;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -61,7 +61,7 @@ class AuthController extends Controller
             'cpf' => 'required|string|max:14|unique:users',
             'matricula' => 'required|string|unique:users',
 
-            // 'unidade' => 'required|exists:unidades,id'
+            // 'unidade' => 'required|exists:Setores,id'
         ]);
 
         if ($validator->fails()) {
@@ -102,9 +102,9 @@ class AuthController extends Controller
         DB::beginTransaction();
         try {
             $user->save();
-            $incoming = $data['unidades_ids'] ?? $data['unidades'] ?? [];
+            $incoming = $data['Setores_ids'] ?? $data['Setores'] ?? [];
             if (empty($incoming) && isset($data['user']) && is_array($data['user'])) {
-                $incoming = $data['user']['unidades_ids'] ?? $data['user']['unidades'] ?? [];
+                $incoming = $data['user']['Setores_ids'] ?? $data['user']['Setores'] ?? [];
             }
             if (is_array($incoming) && !empty($incoming)) {
                 $unidadeIds = array_map(function ($u) {
@@ -117,20 +117,20 @@ class AuthController extends Controller
                 });
 
                 if (!empty($unidadeIds)) {
-                    $validIds = \App\Models\Unidades::whereIn('id', $unidadeIds)->pluck('id')->toArray();
-                    $user->unidades()->sync($validIds);
+                    $validIds = \App\Models\Setores::whereIn('id', $unidadeIds)->pluck('id')->toArray();
+                    $user->Setores()->sync($validIds);
                 }
             }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao salvar usuário e unidades: ' . $e->getMessage());
+            Log::error('Erro ao salvar usuário e Setores: ' . $e->getMessage());
             return response()->json(['status' => false, 'message' => 'Erro ao salvar usuário.'], 500);
         }
 
-        $user = User::with(['unidades' => function ($q) {
-            $q->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo');
+        $user = User::with(['Setores' => function ($q) {
+            $q->select('Setores.id', 'Setores.polo_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
         }])->find($user->id);
 
         return ['status' => true, 'data' => $user];
@@ -162,8 +162,8 @@ class AuthController extends Controller
                 $user->save();
             }
 
-            // Normalizar incoming: aceita 'unidades_ids' (ids) ou 'unidades' (array de objetos)
-            $incoming = $data['unidades_ids'] ?? $data['unidades'] ?? [];
+            // Normalizar incoming: aceita 'Setores_ids' (ids) ou 'Setores' (array de objetos)
+            $incoming = $data['Setores_ids'] ?? $data['Setores'] ?? [];
             if (is_array($incoming) && !empty($incoming)) {
                 $unidadeIds = array_map(function ($u) {
                     if (is_array($u) && isset($u['id'])) return $u['id'];
@@ -175,19 +175,19 @@ class AuthController extends Controller
                 });
 
                 // Validar existência
-                $validIds = Unidades::whereIn('id', $unidadeIds)->pluck('id')->toArray();
-                $user->unidades()->sync($validIds);
+                $validIds = Setores::whereIn('id', $unidadeIds)->pluck('id')->toArray();
+                $user->Setores()->sync($validIds);
             }
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao atualizar usuário e unidades: ' . $e->getMessage());
+            Log::error('Erro ao atualizar usuário e Setores: ' . $e->getMessage());
             return response()->json(['status' => false, 'message' => 'Erro ao atualizar usuário.'], 500);
         }
 
-        $user = User::with(['unidades' => function ($q) {
-            $q->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo');
+        $user = User::with(['Setores' => function ($q) {
+            $q->select('Setores.id', 'Setores.polo_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
         }])->find($user->id);
 
         return response()->json(['status' => true, 'data' => $user]);
@@ -211,8 +211,8 @@ class AuthController extends Controller
 
     public function listData(Request $request)
     {
-        $user = User::with(['unidades' => function ($q) {
-            $q->select('unidades.id', 'unidades.polo_id', 'unidades.nome', 'unidades.descricao', 'unidades.status', 'unidades.estoque', 'unidades.tipo');
+        $user = User::with(['Setores' => function ($q) {
+            $q->select('Setores.id', 'Setores.polo_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
         }])->find($request->id);
 
         if (!$user) {
@@ -225,7 +225,7 @@ class AuthController extends Controller
             'status' => true,
             'data' => $user,
             'tipo_vinculo' => $tipoVinculo,
-            'unidades' => $user->unidades,
+            'Setores' => $user->Setores,
         ];
     }
 

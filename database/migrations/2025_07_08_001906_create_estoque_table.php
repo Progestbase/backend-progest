@@ -16,7 +16,7 @@ class CreateEstoqueTable extends Migration
         Schema::create('estoque', function (Blueprint $table) {
             $table->id();
             $table->foreignId('produto_id')->constrained('produtos')->onDelete('restrict');
-            $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
+            $table->foreignId('unidade_id')->constrained('setores')->onDelete('restrict');
             $table->integer('quantidade_atual');
             $table->integer('quantidade_minima');
             $table->string('localizacao', 255)->nullable()->comment('Localização física do produto no estoque');

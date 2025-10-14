@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Unidades extends Model
+class Setores extends Model
 {
     use HasFactory;
 
-    protected $table = 'unidades';
+    protected $table = 'setores';
 
     protected $fillable = [
         'polo_id',
@@ -33,7 +33,7 @@ class Unidades extends Model
     }
 
     /**
-     * Obter produtos disponíveis para esta unidade baseado no tipo
+     * Obter produtos disponíveis para este setor baseado no tipo
      */
     public function produtosDisponiveis()
     {
@@ -43,7 +43,7 @@ class Unidades extends Model
     }
 
     /**
-     * Obter grupos de produtos compatíveis com esta unidade
+     * Obter grupos de produtos compatíveis com este setor
      */
     public function gruposCompatíveis()
     {
@@ -63,7 +63,7 @@ class Unidades extends Model
      */
     public function usuarios()
     {
-        // Relacionamento many-to-many via tabela pivot 'unidade_user'
-        return $this->belongsToMany(User::class, 'unidade_user', 'unidade_id', 'user_id');
+        // Relacionamento many-to-many via tabela pivot 'setor_user'
+        return $this->belongsToMany(User::class, 'setor_user', 'setor_id', 'user_id');
     }
 }

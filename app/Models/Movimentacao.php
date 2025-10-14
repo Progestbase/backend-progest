@@ -16,12 +16,12 @@ class Movimentacao extends Model
 
     public function unidadeOrigem()
     {
-        return $this->belongsTo(Unidades::class, 'unidade_origem_id');
+        return $this->belongsTo(Setores::class, 'unidade_origem_id');
     }
 
     public function unidadeDestino()
     {
-        return $this->belongsTo(Unidades::class, 'unidade_destino_id');
+        return $this->belongsTo(Setores::class, 'unidade_destino_id');
     }
 
     public function itens()

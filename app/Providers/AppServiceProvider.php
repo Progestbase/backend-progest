@@ -3,9 +3,9 @@
 namespace App\Providers;
 
 use App\Models\Produto;
-use App\Models\Unidades;
+use App\Models\Setores;
 use App\Observers\ProdutoObserver;
-use App\Observers\UnidadesObserver;
+use App\Observers\SetoresObserver;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,6 +32,6 @@ class AppServiceProvider extends ServiceProvider
 
         // Registrar observers
         Produto::observe(ProdutoObserver::class);
-        Unidades::observe(UnidadesObserver::class);
+        Setores::observe(SetoresObserver::class);
     }
 }

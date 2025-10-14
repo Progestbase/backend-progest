@@ -6,7 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class UnidadesSeeder extends Seeder
+class SetoresSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -23,9 +23,9 @@ class UnidadesSeeder extends Seeder
         $poloCresencio = DB::table('polo')->where('nome', 'Crescêncio Silveira')->first()->id;
         $poloUPA = DB::table('polo')->where('nome', 'UPA')->first()->id;
 
-        $unidades = [
+        $setores = [
             // ========================================
-            // UNIDADES COM ESTOQUE (Farmácias)
+            // SETORES COM ESTOQUE (Farmácias)
             // ========================================
 
             // HGVC - Farmácia de Dispensação e Satélite da Emergência
@@ -75,7 +75,7 @@ class UnidadesSeeder extends Seeder
             ],
 
             // ========================================
-            // UNIDADES SEM ESTOQUE - HGVC
+            // SETORES SEM ESTOQUE - HGVC
             // ========================================
             [
                 'polo_id' => $poloHGVC,
@@ -127,7 +127,7 @@ class UnidadesSeeder extends Seeder
             ],
 
             // ========================================
-            // UNIDADE DE TESTE - HAP TI
+            // SETOR DE TESTE - HAP TI
             // ========================================
             [
                 'polo_id' => $poloHAP,
@@ -139,14 +139,14 @@ class UnidadesSeeder extends Seeder
             ],
         ];
 
-        foreach ($unidades as $unidade) {
-            DB::table('unidades')->insert([
-                'polo_id' => $unidade['polo_id'],
-                'nome' => mb_strtoupper($unidade['nome']),
-                'descricao' => $unidade['descricao'],
-                'tipo' => $unidade['tipo'],
-                'estoque' => $unidade['estoque'],
-                'status' => $unidade['status'],
+        foreach ($setores as $setor) {
+            DB::table('setores')->insert([
+                'polo_id' => $setor['polo_id'],
+                'nome' => mb_strtoupper($setor['nome']),
+                'descricao' => $setor['descricao'],
+                'tipo' => $setor['tipo'],
+                'estoque' => $setor['estoque'],
+                'status' => $setor['status'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

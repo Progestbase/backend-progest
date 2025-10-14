@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateUnidadeUserTable extends Migration
+class CreateSetorUserTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,10 +13,10 @@ class CreateUnidadeUserTable extends Migration
      */
     public function up()
     {
-        Schema::create('unidade_user', function (Blueprint $table) {
+        Schema::create('setor_user', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('restrict');
-            $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
+            $table->foreignId('setor_id')->constrained('setores')->onDelete('restrict');
             $table->timestamps();
         });
     }
@@ -28,6 +28,6 @@ class CreateUnidadeUserTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('unidade_user');
+        Schema::dropIfExists('setor_user');
     }
 }

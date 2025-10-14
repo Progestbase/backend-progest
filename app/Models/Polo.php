@@ -22,9 +22,9 @@ class Polo extends Model
     ];
 
     // Relacionamentos
-    public function unidades()
+    public function setores()
     {
-        return $this->hasMany(Unidades::class, 'polo_id');
+        return $this->hasMany(Setores::class, 'polo_id');
     }
 
     // Scopes para filtros

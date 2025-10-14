@@ -5,20 +5,20 @@ namespace App\Http\Controllers\Cadastros;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use App\Models\Unidades;
+use App\Models\Setores;
 use Illuminate\Support\Facades\Validator;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
 
-class UnidadesController
+class SetoresController
 {
     public function add(Request $request)
     {
         $data = $request->all();
 
-        $validator = Validator::make($data['unidades'], [
+        $validator = Validator::make($data['Setores'], [
             'polo_id'       => 'required|exists:polo,id',
             'nome'          => 'required|string|max:255',
             'estoque'       => 'sometimes|boolean',
@@ -33,17 +33,17 @@ class UnidadesController
             ], 422);
         }
 
-        $unidades = new Unidades;
-        $unidades->polo_id        = $data['unidades']['polo_id'];
-        $unidades->nome           = mb_strtoupper($data['unidades']['nome']);
-        $unidades->descricao      = $data['unidades']['descricao'] ?? '';
-        $unidades->status         = $data['unidades']['status'] ?? 'A';
-        $unidades->estoque        = $data['unidades']['estoque'] ?? false;
-        $unidades->tipo           = $data['unidades']['tipo'] ?? 'Material';
+        $Setores = new Setores;
+        $Setores->polo_id        = $data['Setores']['polo_id'];
+        $Setores->nome           = mb_strtoupper($data['Setores']['nome']);
+        $Setores->descricao      = $data['Setores']['descricao'] ?? '';
+        $Setores->status         = $data['Setores']['status'] ?? 'A';
+        $Setores->estoque        = $data['Setores']['estoque'] ?? false;
+        $Setores->tipo           = $data['Setores']['tipo'] ?? 'Material';
 
-        $unidades->save();
+        $Setores->save();
 
-        return ['status' => true, 'data' => $unidades];
+        return ['status' => true, 'data' => $Setores];
     }
 
     public function listAll(Request $request)
@@ -51,35 +51,35 @@ class UnidadesController
         $data = $request->all();
         $filters = $data['filters'] ?? [];
 
-        $unidadesQuery = Unidades::with('polo');
+        $SetoresQuery = Setores::with('polo');
 
         foreach ($filters as $condition) {
             foreach ($condition as $column => $value) {
-                $unidadesQuery->where($column, $value);
+                $SetoresQuery->where($column, $value);
             }
         }
 
         if (!isset($data['paginate'])) {
-            $unidades = $unidadesQuery
+            $Setores = $SetoresQuery
                 ->select('id', 'polo_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
                 ->orderBy('nome')
                 ->get();
         } else {
             $per_page = $data['per_page'] ?? 50;
-            $unidades = $unidadesQuery
+            $Setores = $SetoresQuery
                 ->select('id', 'polo_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
                 ->orderBy('nome')
                 ->paginate($per_page);
         }
 
-        return ['status' => true, 'data' => $unidades];
+        return ['status' => true, 'data' => $Setores];
     }
 
     public function update(Request $request)
     {
         $data = $request->all();
 
-        $validator = Validator::make($data['unidades'], [
+        $validator = Validator::make($data['Setores'], [
             'polo_id'       => 'required|exists:polo,id',
             'nome'          => 'required|string|max:255',
             'estoque'       => 'sometimes|boolean',
@@ -94,25 +94,25 @@ class UnidadesController
             ], 422);
         }
 
-        $unidades = Unidades::find($data['unidades']['id']);
+        $Setores = Setores::find($data['Setores']['id']);
 
-        if (!$unidades) {
+        if (!$Setores) {
             return response()->json([
                 'status' => false,
-                'message' => 'Unidade não encontrada.'
+                'message' => 'Setor não encontrado.'
             ], 404);
         }
 
-        $unidades->polo_id        = $data['unidades']['polo_id'];
-        $unidades->nome           = mb_strtoupper($data['unidades']['nome']);
-        $unidades->descricao      = $data['unidades']['descricao'] ?? '';
-        $unidades->status         = $data['unidades']['status'] ?? 'A';
-        $unidades->estoque        = $data['unidades']['estoque'] ?? $unidades->estoque;
-        $unidades->tipo           = $data['unidades']['tipo'] ?? $unidades->tipo;
+        $Setores->polo_id        = $data['Setores']['polo_id'];
+        $Setores->nome           = mb_strtoupper($data['Setores']['nome']);
+        $Setores->descricao      = $data['Setores']['descricao'] ?? '';
+        $Setores->status         = $data['Setores']['status'] ?? 'A';
+        $Setores->estoque        = $data['Setores']['estoque'] ?? $Setores->estoque;
+        $Setores->tipo           = $data['Setores']['tipo'] ?? $Setores->tipo;
 
-        $unidades->save();
+        $Setores->save();
 
-        return ['status' => true, 'data' => $unidades];
+        return ['status' => true, 'data' => $Setores];
     }
 
     public function listData(Request $request)
@@ -120,44 +120,44 @@ class UnidadesController
         $data = $request->all();
         $dataID = $data['id'];
 
-        $unidades = Unidades::with('polo')->find($dataID);
+        $Setores = Setores::with('polo')->find($dataID);
 
-        if (!$unidades) {
+        if (!$Setores) {
             return response()->json([
                 'status' => false,
-                'message' => 'Unidade não encontrada.'
+                'message' => 'Setor não encontrado.'
             ], 404);
         }
 
-        return ['status' => true, 'data' => $unidades];
+        return ['status' => true, 'data' => $Setores];
     }
 
     public function delete($id)
     {
-        $unidades = Unidades::find($id);
+        $Setores = Setores::find($id);
 
-        if (!$unidades) {
+        if (!$Setores) {
             return response()->json([
                 'status' => false,
-                'message' => 'Unidade não encontrada.'
+                'message' => 'Setor não encontrado.'
             ], 404);
         }
 
         // Verificar referências antes de deletar
-        $references = $this->checkUnidadesReferences($id);
+        $references = $this->checkSetoresReferences($id);
         if (!empty($references)) {
             return response()->json([
                 'status' => false,
-                'message' => 'Não é possível excluir esta unidade pois ela possui registros relacionados no sistema.',
+                'message' => 'Não é possível excluir este setor pois ele possui registros relacionados no sistema.',
                 'references' => $references
             ], 422);
         }
 
-        $unidades->delete();
+        $Setores->delete();
 
         return response()->json([
             'status' => true,
-            'message' => 'Unidade excluída com sucesso.'
+            'message' => 'Setor excluído com sucesso.'
         ], 200);
     }
 
@@ -169,42 +169,42 @@ class UnidadesController
             if (!isset($data['id'])) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'ID da unidade não fornecido'
+                    'message' => 'ID do setor não fornecido'
                 ], 400);
             }
 
-            $unidade = Unidades::find($data['id']);
+            $setor = Setores::find($data['id']);
 
-            if (!$unidade) {
+            if (!$setor) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Unidade não encontrada'
+                    'message' => 'Setor não encontrado'
                 ], 404);
             }
 
             // Toggle: A -> I ou I -> A
-            $unidade->status = $unidade->status === 'A' ? 'I' : 'A';
-            $unidade->save();
+            $setor->status = $setor->status === 'A' ? 'I' : 'A';
+            $setor->save();
 
             return response()->json([
                 'status' => true,
-                'data' => $unidade,
+                'data' => $setor,
                 'message' => 'Status atualizado com sucesso'
             ]);
         } catch (\Exception $e) {
-            Log::error('Erro ao alterar status da unidade: ' . $e->getMessage());
+            Log::error('Erro ao alterar status do setor: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'Erro ao alterar status da unidade'
+                'message' => 'Erro ao alterar status do setor'
             ], 500);
         }
     }
 
-    private function checkUnidadesReferences($id)
+    private function checkSetoresReferences($id)
     {
         $references = [];
 
-        // Verificar estoque vinculado à unidade
+        // Verificar estoque vinculado ao setor
         $estoqueCount = DB::table('estoque')->where('unidade_id', $id)->count();
         if ($estoqueCount > 0) {
             $references[] = 'estoque (' . $estoqueCount . ' itens)';

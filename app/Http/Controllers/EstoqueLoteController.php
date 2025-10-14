@@ -32,8 +32,8 @@ class EstoqueLoteController extends Controller
             $estoque = Estoque::find($request->estoque_id);
 
             $lotes = EstoqueLote::with([
-                // 'codigo_unidade' não existe na tabela 'unidades', removido
-                'unidade:id,nome,tipo',
+                // 'codigo_unidade' não existe na tabela 'setores', removido
+                'setor:id,nome,tipo',
                 'produto:id,nome,marca,grupo_produto_id,unidade_medida_id',
                 'produto.grupoProduto:id,nome,tipo',
                 // 'abreviacao' não existe em unidade_medida (migration/model), removido

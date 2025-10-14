@@ -5,7 +5,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 
-use App\Http\Controllers\Cadastros\UnidadesController;
+use App\Http\Controllers\Cadastros\SetoresController;
 use App\Http\Controllers\Cadastros\FornecedorController;
 use App\Http\Controllers\Cadastros\ProdutoController;
 use App\Http\Controllers\Cadastros\UnidadeMedidaController;
@@ -62,14 +62,14 @@ Route::post('/polo/listData', [PoloController::class, 'listData']);
 Route::post('/polo/delete/{id}', [PoloController::class, 'delete']);
 Route::post('/polo/toggleStatus', [PoloController::class, 'toggleStatus']);
 
-// Rotas antigas de setores removidas - usar /unidades
+// Rotas antigas de unidades removidas - usar /setores
 
-Route::post('/unidades/add', [UnidadesController::class, 'add']);
-Route::post('/unidades/update', [UnidadesController::class, 'update']);
-Route::post('/unidades/list', [UnidadesController::class, 'listAll']);
-Route::post('/unidades/listData', [UnidadesController::class, 'listData']);
-Route::post('/unidades/delete/{id}', [UnidadesController::class, 'delete']);
-Route::post('/unidades/toggleStatus', [UnidadesController::class, 'toggleStatus']);
+Route::post('/setores/add', [SetoresController::class, 'add']);
+Route::post('/setores/update', [SetoresController::class, 'update']);
+Route::post('/setores/list', [SetoresController::class, 'listAll']);
+Route::post('/setores/listData', [SetoresController::class, 'listData']);
+Route::post('/setores/delete/{id}', [SetoresController::class, 'delete']);
+Route::post('/setores/toggleStatus', [SetoresController::class, 'toggleStatus']);
 
 // Rotas dos módulos produtos, categoriasProdutos e unidadesMedida foram removidas
 // Use os novos módulos: Produto, GrupoProduto e UnidadeMedida
@@ -111,7 +111,7 @@ Route::post('/estoque/listData', [CadastrosEstoqueController::class, 'listData']
 Route::post('/estoque/delete/{id}', [CadastrosEstoqueController::class, 'delete']);
 
 // Novas rotas do módulo de estoque
-Route::get('/estoque/unidade/{unidadeId}', [EstoqueController::class, 'listarPorUnidade']);
+Route::get('/estoque/setor/{setorId}', [EstoqueController::class, 'listarPorSetor']);
 Route::get('/estoque/{id}', [EstoqueController::class, 'show']);
 Route::put('/estoque/{id}/quantidade-minima', [EstoqueController::class, 'atualizarQuantidadeMinima']);
 Route::put('/estoque/{id}/status', [EstoqueController::class, 'atualizarStatus']);

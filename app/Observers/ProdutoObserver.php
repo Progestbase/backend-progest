@@ -12,7 +12,7 @@ class ProdutoObserver
      */
     public function created(Produto $produto)
     {
-        // Quando um produto é criado, instanciar estoque em todas as unidades compatíveis
+        // Quando um produto é criado, instanciar estoque em todos os setores compatíveis
         Estoque::criarEstoqueParaNovoProduto($produto->id);
     }
 
