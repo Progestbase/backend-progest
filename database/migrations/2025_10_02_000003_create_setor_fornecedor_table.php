@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateSetorFornecedoraTable extends Migration
+class CreateSetorFornecedorTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,10 +13,10 @@ class CreateSetorFornecedoraTable extends Migration
      */
     public function up()
     {
-        Schema::create('setor_fornecedora', function (Blueprint $table) {
+        Schema::create('setor_fornecedor', function (Blueprint $table) {
             $table->id();
             $table->foreignId('setor_solicitante_id')->constrained('setores')->onDelete('restrict');
-            $table->foreignId('setor_fornecedora_id')->constrained('setores')->onDelete('restrict');
+            $table->foreignId('setor_fornecedor_id')->constrained('setores')->onDelete('restrict');
             $table->enum('tipo_produto', ['Medicamento', 'Material']);
             $table->timestamps();
 
@@ -32,6 +32,6 @@ class CreateSetorFornecedoraTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('setor_fornecedora');
+        Schema::dropIfExists('setor_fornecedor');
     }
 }

@@ -66,4 +66,12 @@ class Setores extends Model
         // Relacionamento many-to-many via tabela pivot 'setor_user'
         return $this->belongsToMany(User::class, 'setor_user', 'setor_id', 'user_id');
     }
+
+    /**
+     * Fornecedores relacionados a este setor (como solicitante)
+     */
+    public function fornecedoresRelacionados()
+    {
+        return $this->hasMany(SetorFornecedor::class, 'setor_solicitante_id');
+    }
 }
