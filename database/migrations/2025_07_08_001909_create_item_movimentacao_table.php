@@ -19,6 +19,7 @@ class CreateItemMovimentacaoTable extends Migration
             $table->foreignId('produto_id')->constrained('produtos')->onDelete('restrict');
             $table->integer('quantidade_solicitada');
             $table->integer('quantidade_liberada');
+            $table->string('lote')->nullable();
             $table->timestamps();
         });
     }

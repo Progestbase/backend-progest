@@ -79,3 +79,61 @@ Funções úteis esperadas em Models/Service:
 ---
 
 Se quiser, eu já atualizo este arquivo com exemplos de payloads e contratos (inputs/outputs) para o endpoint que você escolher implementar agora.
+
+## Atualizações rápidas (adicionadas)
+
+Estas notas foram acrescentadas para ajudar agentes AI a iniciar rapidamente com workflows e decisões recorrentes do projeto.
+
+-   Build / setup rápidos:
+
+    -   Instalar dependências PHP: `composer install`
+    -   Copiar env: `copy .env.example .env` (Windows PowerShell) e gerar key: `php artisan key:generate`
+    -   Migrations + seeders (dev): `php artisan migrate --seed`
+    -   Frontend (quando aplicável): `npm install` e `npm run dev`
+    -   Rodar testes unitários: `vendor/bin/phpunit` ou `./vendor/bin/phpunit`
+    -   Servir localmente: `php artisan serve`
+
+-   Onde olhar primeiro (arquivos-chave):
+
+    -   `routes/api.php` — todas as rotas de API (o projeto usa POST com frequência para listagens)
+    -   `app/Http/Controllers/` — controllers seguem padrão de respostas JSON com `status`/`data`/`message`
+    -   Models críticos: `app/Produto.php`, `app/Estoque.php`, `app/EstoqueLote.php`, `app/Setores.php`, `app/GrupoProduto.php`
+    -   Observers: `app/Observers/ProdutoObserver.php`, `app/Observers/SetoresObserver.php` (registrados em `app/Providers/AppServiceProvider.php`)
+    -   Migrations: `database/migrations/*` — verifique chaves únicas e constraints, ex: `estoque_lote` unique composta `(unidade_id, produto_id, lote)`.
+    -   Seeders: `database/seeders/` (ex.: `SetoresSeeder.php`) são úteis para testes locais.
+
+-   Padrões de respostas e logging:
+
+    -   Sucesso: `{ status: true, data: <payload>, message?: <string> }`
+    -   Erro: `{ status: false, message: <string> }` com HTTP status code adequado
+    -   Sempre logar exceções relevantes com `Log::error()` antes de retornar erro ao cliente.
+
+-   Convenções e regras encontradas no código (faça igual):
+
+    -   Não usar soft deletes: em vez disso, inative com `status = 'I'` (ativa = `'A'`).
+    -   `estoque.status_disponibilidade` usa valores 'D' (Disponível) e 'I' (Indisponível).
+    -   Tipo matching: `grupo_produto.tipo` deve casar com `setor.tipo` para provisionamento de estoque (ver observers).
+    -   `estoque_lote` tem unique composta; entradas duplicadas devem fazer upsert ou consolidar quantidades.
+    -   Scopes úteis esperados: `ativo()`, `porGrupo()`, `porUnidade()`, `disponivel()` — procure implementação nos models antes de criar queries customizadas.
+
+-   Padrões de implementação observados (exemplos concretos):
+    -   Auto-provisionamento: `ProdutoObserver`/`SetoresObserver` chamam métodos de `Estoque` para criar registros iniciais — ver `app/Providers/AppServiceProvider.php`.
+    -   Eager loading frequente: `Produto::with(['grupoProduto','unidadeMedida'])->...` para evitar N+1.
+    -   Rotas e controllers frequentemente aceitam `filters` (array) e `per_page` para listagens paginadas (veja métodos `listAll()` nos controllers).
+
+## Mini-contrato para novos endpoints
+
+-   Input: JSON via POST; padrões comuns: `filters`, `per_page`, `data`.
+-   Output: JSON com chaves `status`, `data`, `message`.
+-   Erros: retornar `status: false`, logar com `Log::error()` e usar HTTP status code adequado.
+
+## Checklist rápido antes de abrir PR
+
+1. Altera modelos/migrations? Confirme constraints em `database/migrations` e atualize seeders.
+2. Modifica lógica de estoque/lote? Garanta validação do tipo (`grupo_produto.tipo x setor.tipo`) e atualização correta de `estoque` e `estoque_lote`.
+3. Mantém formato de resposta JSON e usa eager loading/scopes onde aplicável.
+4. Execute `vendor/bin/phpunit` e inclua seeders necessários para testes que dependam de dados.
+
+---
+
+Se quiser, aplico exemplos de payloads e um contrato OpenAPI mínimo para um endpoint (ex.: registrar uma `entrada` que atualize `estoque_lote` e `estoque`). Indique qual endpoint e eu gero payloads, testes e um PR sugerido.

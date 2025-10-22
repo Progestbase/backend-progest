@@ -103,6 +103,17 @@ Route::post('/entrada/list', [EntradaController::class, 'list']);
 Route::post('/entrada/update', [EntradaController::class, 'update']);
 Route::post('/entrada/delete', [EntradaController::class, 'delete']);
 
+// Rotas para movimentações
+use App\Http\Controllers\MovimentacaoController;
+
+Route::post('/movimentacao/add', [MovimentacaoController::class, 'store']);
+Route::match(['get', 'post'], '/movimentacao/listBySetor', [MovimentacaoController::class, 'listBySetor']);
+// Rota legado para compatibilidade com front que ainda chama "listByUnidade"
+Route::match(['get', 'post'], '/movimentacao/listByUnidade', [MovimentacaoController::class, 'listBySetor']);
+Route::get('/movimentacao/{id}', [MovimentacaoController::class, 'show']);
+Route::post('/movimentacao/{id}/process', [MovimentacaoController::class, 'process']);
+Route::post('/movimentacao/{id}/delete', [MovimentacaoController::class, 'destroy']);
+
 // Rotas antigas do estoque (para manter compatibilidade)
 Route::post('/estoque/add', [CadastrosEstoqueController::class, 'add']);
 Route::post('/estoque/update', [CadastrosEstoqueController::class, 'update']);
