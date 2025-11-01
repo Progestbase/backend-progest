@@ -20,22 +20,22 @@ class SetoresSeeder extends Seeder
         DB::table('setor_fornecedor')->delete();
         DB::table('setores')->delete();
 
-        // Buscar ID do polo HGVC (Todos os setores serão deste polo)
-        $poloHGVC = DB::table('polo')->where('nome', 'Hospital Geral')->first()->id;
+        // Buscar ID da unidade HGVC (Todos os setores serão desta unidade)
+        $poloHGVC = DB::table('unidades')->where('nome', 'Hospital Geral')->first()->id;
 
         // Inserir somente os 6 setores da imagem (todos no HGVC)
         $toInsert = [
-            ['polo_id' => $poloHGVC, 'nome' => 'Farmácia Central', 'descricao' => 'Farmácia Central que atende as clínicas', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
-            ['polo_id' => $poloHGVC, 'nome' => 'Farmácia de Dispensação', 'descricao' => 'Central de Abastecimento Farmacêutico', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
-            ['polo_id' => $poloHGVC, 'nome' => 'Satélite da Emergência', 'descricao' => 'Farmácia Satélite do Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
-            ['polo_id' => $poloHGVC, 'nome' => 'Centro Cirúrgico', 'descricao' => 'Centro Cirúrgico', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
-            ['polo_id' => $poloHGVC, 'nome' => 'Clínica Médica', 'descricao' => 'Clínica Médica', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
-            ['polo_id' => $poloHGVC, 'nome' => 'Emergência', 'descricao' => 'Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC, 'nome' => 'Farmácia Central', 'descricao' => 'Farmácia Central que atende as clínicas', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC, 'nome' => 'Farmácia de Dispensação', 'descricao' => 'Central de Abastecimento Farmacêutico', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC, 'nome' => 'Satélite da Emergência', 'descricao' => 'Farmácia Satélite do Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC, 'nome' => 'Centro Cirúrgico', 'descricao' => 'Centro Cirúrgico', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC, 'nome' => 'Clínica Médica', 'descricao' => 'Clínica Médica', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC, 'nome' => 'Emergência', 'descricao' => 'Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
         ];
 
         foreach ($toInsert as $row) {
             DB::table('setores')->insert([
-                'polo_id' => $row['polo_id'],
+                'unidade_id' => $row['unidade_id'],
                 'nome' => mb_strtoupper($row['nome']),
                 'descricao' => $row['descricao'],
                 'tipo' => $row['tipo'],

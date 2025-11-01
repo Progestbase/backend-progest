@@ -12,7 +12,7 @@ use App\Http\Controllers\Cadastros\UnidadeMedidaController;
 use App\Http\Controllers\Cadastros\EstoqueController as CadastrosEstoqueController;
 use App\Http\Controllers\Cadastros\TipoVinculoController;
 use App\Http\Controllers\Cadastros\GrupoProdutoController;
-use App\Http\Controllers\Cadastros\PoloController;
+use App\Http\Controllers\Cadastros\UnidadeController;
 use App\Http\Controllers\EstoqueController;
 use App\Http\Controllers\EstoqueLoteController;
 use App\Http\Controllers\EntradaController;
@@ -54,13 +54,21 @@ Route::post('/tipoVinculo/list', [TipoVinculoController::class, 'listAll']);
 Route::post('/tipoVinculo/listData', [TipoVinculoController::class, 'listData']);
 Route::post('/tipoVinculo/delete/{id}', [TipoVinculoController::class, 'delete']);
 
-// Rotas para polo
-Route::post('/polo/add', [PoloController::class, 'add']);
-Route::post('/polo/update', [PoloController::class, 'update']);
-Route::post('/polo/list', [PoloController::class, 'listAll']);
-Route::post('/polo/listData', [PoloController::class, 'listData']);
-Route::post('/polo/delete/{id}', [PoloController::class, 'delete']);
-Route::post('/polo/toggleStatus', [PoloController::class, 'toggleStatus']);
+// Rotas para unidade (mantém compatibilidade com /polo)
+Route::post('/unidade/add', [UnidadeController::class, 'add']);
+Route::post('/unidade/update', [UnidadeController::class, 'update']);
+Route::post('/unidade/list', [UnidadeController::class, 'listAll']);
+Route::post('/unidade/listData', [UnidadeController::class, 'listData']);
+Route::post('/unidade/delete/{id}', [UnidadeController::class, 'delete']);
+Route::post('/unidade/toggleStatus', [UnidadeController::class, 'toggleStatus']);
+
+// Rotas antigas /polo para compatibilidade apontando para o mesmo controller
+Route::post('/polo/add', [UnidadeController::class, 'add']);
+Route::post('/polo/update', [UnidadeController::class, 'update']);
+Route::post('/polo/list', [UnidadeController::class, 'listAll']);
+Route::post('/polo/listData', [UnidadeController::class, 'listData']);
+Route::post('/polo/delete/{id}', [UnidadeController::class, 'delete']);
+Route::post('/polo/toggleStatus', [UnidadeController::class, 'toggleStatus']);
 
 // Rotas antigas de unidades removidas - usar /setores
 

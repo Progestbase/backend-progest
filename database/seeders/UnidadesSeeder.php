@@ -6,7 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
-class PolosSeeder extends Seeder
+class UnidadesSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -15,7 +15,10 @@ class PolosSeeder extends Seeder
      */
     public function run()
     {
-        $polos = [
+        // Garantir que a tabela esteja limpa antes de repovoar (evita duplicatas e registros indesejados)
+        DB::table('unidades')->truncate();
+
+        $unidades = [
             ['nome' => 'Hospital Geral', 'status' => 'A'],
             ['nome' => 'Hospital Afrânio Peixoto', 'status' => 'A'],
             ['nome' => 'Crescêncio Silveira', 'status' => 'A'],
@@ -24,10 +27,10 @@ class PolosSeeder extends Seeder
 
         $now = Carbon::now();
 
-        foreach ($polos as $polo) {
-            DB::table('polo')->insert([
-                'nome' => $polo['nome'],
-                'status' => $polo['status'],
+        foreach ($unidades as $unidade) {
+            DB::table('unidades')->insert([
+                'nome' => $unidade['nome'],
+                'status' => $unidade['status'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

@@ -12,7 +12,7 @@ class Setores extends Model
     protected $table = 'setores';
 
     protected $fillable = [
-        'polo_id',
+        'unidade_id',
         'nome',
         'descricao',
         'status',
@@ -25,11 +25,21 @@ class Setores extends Model
     ];
 
     /**
-     * Relacionamento com polo
+     * Relacionamento com unidade
+     */
+    public function unidade()
+    {
+        return $this->belongsTo(Unidade::class, 'unidade_id');
+    }
+
+    /**
+     * Compatibilidade legada: alias para `unidade()`.
+     * Alguns trechos do código e controladores antigos ainda chamam ->polo.
+     * Mantemos este alias para evitar erros 500 enquanto o código for migrado.
      */
     public function polo()
     {
-        return $this->belongsTo(Polo::class, 'polo_id');
+        return $this->unidade();
     }
 
     /**

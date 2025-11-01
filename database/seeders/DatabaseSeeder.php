@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // Seeders de dados iniciais
         $this->call([
-            PolosSeeder::class,
+            UnidadesSeeder::class,
             SetoresSeeder::class,
             UnidadeMedidaSeeder::class,
             GrupoProdutoSeeder::class,

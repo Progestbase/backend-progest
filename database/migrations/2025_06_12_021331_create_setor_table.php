@@ -15,7 +15,7 @@ class CreateSetorTable extends Migration
     {
         Schema::create('setores', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('polo_id')->constrained('polo')->onDelete('restrict');
+            $table->foreignId('unidade_id')->constrained('unidades')->onDelete('restrict');
             $table->string('nome');
             $table->string('descricao')->nullable();
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = Ativo, I = Inativo');

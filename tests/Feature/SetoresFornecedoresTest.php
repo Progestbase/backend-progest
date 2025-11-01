@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Setores;
-use App\Models\Polo;
+use App\Models\Unidade;
 use App\Models\SetorFornecedor;
 
 class SetoresFornecedoresTest extends TestCase
@@ -14,12 +14,12 @@ class SetoresFornecedoresTest extends TestCase
 
     public function test_create_setor_with_fornecedor_and_uniqueness()
     {
-        // Criar polo
-        $polo = Polo::factory()->create();
+        // Criar unidade
+        $unidade = Unidade::factory()->create();
 
         // Criar setor fornecedor existente
         $fornecedor = Setores::create([
-            'polo_id' => $polo->id,
+            'unidade_id' => $unidade->id,
             'nome' => 'FORNECEDOR A',
             'tipo' => 'Medicamento',
             'estoque' => false,
@@ -29,7 +29,7 @@ class SetoresFornecedoresTest extends TestCase
         // Payload para criar setor solicitante com fornecedor
         $payload = [
             'Setores' => [
-                'polo_id' => $polo->id,
+                'unidade_id' => $unidade->id,
                 'nome' => 'SOLICITANTE X',
                 'tipo' => 'Medicamento',
                 'estoque' => false
@@ -55,7 +55,7 @@ class SetoresFornecedoresTest extends TestCase
         // Tentar criar outro fornecedor do mesmo tipo deve falhar
         $payload2 = [
             'Setores' => [
-                'polo_id' => $polo->id,
+                'unidade_id' => $unidade->id,
                 'nome' => 'SOLICITANTE Y',
                 'tipo' => 'Medicamento',
                 'estoque' => false

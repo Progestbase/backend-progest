@@ -19,7 +19,7 @@ class SetoresController
         $data = $request->all();
 
         $validator = Validator::make($data['Setores'], [
-            'polo_id'       => 'required|exists:polo,id',
+            'unidade_id'       => 'required|exists:unidades,id',
             'nome'          => 'required|string|max:255',
             'estoque'       => 'sometimes|boolean',
             'tipo'          => 'sometimes|in:Medicamento,Material',
@@ -34,7 +34,7 @@ class SetoresController
         }
 
         $Setores = new Setores;
-        $Setores->polo_id        = $data['Setores']['polo_id'];
+        $Setores->unidade_id        = $data['Setores']['unidade_id'];
         $Setores->nome           = mb_strtoupper($data['Setores']['nome']);
         $Setores->descricao      = $data['Setores']['descricao'] ?? '';
         $Setores->status         = $data['Setores']['status'] ?? 'A';
@@ -140,7 +140,7 @@ class SetoresController
         $filters = $data['filters'] ?? [];
 
         // Eager load fornecedores relacionados
-        $SetoresQuery = Setores::with(['polo', 'fornecedoresRelacionados.fornecedor']);
+        $SetoresQuery = Setores::with(['unidade', 'fornecedoresRelacionados.fornecedor']);
 
         foreach ($filters as $condition) {
             foreach ($condition as $column => $value) {
@@ -150,13 +150,13 @@ class SetoresController
 
         if (!isset($data['paginate'])) {
             $Setores = $SetoresQuery
-                ->select('id', 'polo_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
+                ->select('id', 'unidade_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
                 ->orderBy('nome')
                 ->get();
         } else {
             $per_page = $data['per_page'] ?? 50;
             $Setores = $SetoresQuery
-                ->select('id', 'polo_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
+                ->select('id', 'unidade_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
                 ->orderBy('nome')
                 ->paginate($per_page);
         }
@@ -169,7 +169,7 @@ class SetoresController
         $data = $request->all();
 
         $validator = Validator::make($data['Setores'], [
-            'polo_id'       => 'required|exists:polo,id',
+            'unidade_id'       => 'required|exists:unidades,id',
             'nome'          => 'required|string|max:255',
             'estoque'       => 'sometimes|boolean',
             'tipo'          => 'sometimes|in:Medicamento,Material',
@@ -192,7 +192,7 @@ class SetoresController
             ], 404);
         }
 
-        $Setores->polo_id        = $data['Setores']['polo_id'];
+        $Setores->unidade_id        = $data['Setores']['unidade_id'];
         $Setores->nome           = mb_strtoupper($data['Setores']['nome']);
         $Setores->descricao      = $data['Setores']['descricao'] ?? '';
         $Setores->status         = $data['Setores']['status'] ?? 'A';
@@ -287,7 +287,7 @@ class SetoresController
             }
         }
 
-        return ['status' => true, 'data' => Setores::with(['polo', 'fornecedoresRelacionados.fornecedor'])->find($Setores->id)];
+        return ['status' => true, 'data' => Setores::with(['unidade', 'fornecedoresRelacionados.fornecedor'])->find($Setores->id)];
     }
 
     public function listData(Request $request)
@@ -296,7 +296,7 @@ class SetoresController
         $dataID = $data['id'];
 
         // Carregar setor com fornecedores relacionados e dados do fornecedor
-        $Setores = Setores::with(['polo', 'fornecedoresRelacionados.fornecedor'])->find($dataID);
+        $Setores = Setores::with(['unidade', 'fornecedoresRelacionados.fornecedor'])->find($dataID);
 
         if (!$Setores) {
             return response()->json([

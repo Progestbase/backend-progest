@@ -5,8 +5,7 @@ namespace Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Unidade;
 
-// Arquivo de compatibilidade: PoloFactory aponta para Unidade
-class PoloFactory extends Factory
+class UnidadeFactory extends Factory
 {
     protected $model = Unidade::class;
 

@@ -2,45 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
-
-class Polo extends Model
+/**
+ * Classe de compatibilidade para código legado que ainda usa Polo.
+ * Ela estende Unidade para apontar para a nova implementação.
+ */
+class Polo extends Unidade
 {
-    use HasFactory;
-
-    protected $table = 'polo';
-
-    protected $fillable = [
-        'nome',
-        'status'
-    ];
-
-    protected $casts = [
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
-    ];
-
-    // Relacionamentos
-    public function setores()
-    {
-        return $this->hasMany(Setores::class, 'polo_id');
-    }
-
-    // Scopes para filtros
-    public function scopeAtivo($query)
-    {
-        return $query->where('status', 'A');
-    }
-
-    public function scopeInativo($query)
-    {
-        return $query->where('status', 'I');
-    }
-
-    // Accessors
-    public function isAtivo()
-    {
-        return $this->status === 'A';
-    }
+    // wrapper vazio — mantém compatibilidade com chamadas antigas como Polo::query(), Polo::factory(), etc.
 }
