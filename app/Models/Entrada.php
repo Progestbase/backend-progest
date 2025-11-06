@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 class Entrada extends Model
 {
     protected $table = 'entrada';
-    protected $fillable = ['nota_fiscal', 'unidade_id', 'fornecedor_id'];
+    protected $fillable = ['nota_fiscal', 'setor_id', 'fornecedor_id'];
 
     public function setor()
     {
-        return $this->belongsTo(Setores::class, 'unidade_id');
+        return $this->belongsTo(Setores::class, 'setor_id');
     }
 
     public function fornecedor()

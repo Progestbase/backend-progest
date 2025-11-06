@@ -1,172 +1,307 @@
-# ProGest Backend - AI Agent Instructions# ProGest Backend - AI Agent Instructions
+# ProGest Backend - AI Agent Instructions
 
-> Sistema de gestão hospitalar Laravel para controle de estoques de medicamentos e materiais com auto-provisionamento via Observers e validação de tipos por regras de negócio.> Sistema de gestão hospitalar Laravel para controle de estoques de medicamentos e materiais com auto-provisionamento via Observers e validação de tipos por regras de negócio.
+> Sistema de gestão hospitalar Laravel para controle de estoques de medicamentos e materiais com auto-provisionamento via Observers e validação de tipos por regras de negócio.
 
-## Arquitetura Essencial## Arquitetura Essencial
+## Arquitetura Essencial
 
-**ProGest** gerencia estoques hospitalares com dois fluxos críticos:**ProGest** gerencia estoques hospitalares com dois fluxos críticos:
+**ProGest** gerencia estoques hospitalares com dois fluxos críticos:
 
-1. **Auto-provisionamento**: Quando produto/setor é criado, observers criam registros de `estoque` automaticamente se tipos compatíveis
-
-1. **Auto-provisionamento**: Quando produto/setor é criado, observers criam registros de `estoque` automaticamente se tipos compatíveis2. **Controle por lote**: Entradas atualizam `estoque` (agregado) + `estoque_lote` (granular com vencimento)
-
-1. **Controle por lote**: Entradas atualizam `estoque` (agregado) + `estoque_lote` (granular com vencimento)
+1. **Auto-provisionamento via Observers**: Quando produto/setor é criado, observers (`ProdutoObserver`, `SetoresObserver`) criam registros de `estoque` automaticamente se tipos compatíveis (registrados em `AppServiceProvider::boot()`)
+2. **Controle por lote com unique constraint**: Entradas atualizam `estoque` (agregado) + `estoque_lote` (granular com vencimento, lote e unique composta)
 
 **Entidades Core** (ver `database/migrations/`):
 
-**Fluxo de entrada** (exemplo real em `EntradaController::add()`):- `setores` (unidades físicas): tem `tipo` (Medicamento|Material), `estoque` (bool), relaciona com `unidades` (polos)
+**Entidades Core** (ver migrations em `database/migrations/`):
 
-```php- `produtos`: tem `grupo_produto_id`que define`tipo`(deve casar com`setor.tipo`)
+-   `setores`: tem `tipo` enum('Medicamento','Material'), `estoque` boolean, `status` enum('A','I'), FK para `unidades` (polos). Usado como `unidade_id` em relações de estoque.
+-   `produtos`: tem `grupo_produto_id` (FK) que define `tipo` via `grupo_produto.tipo` — DEVE casar com `setor.tipo` para operações de estoque
+-   `grupo_produto`: define `tipo` enum('Medicamento','Material') e `status` enum('A','I') que propaga para produtos
+-   `estoque`: agregação por `produto_id` + `unidade_id` (setor) com `quantidade_atual`, `quantidade_minima`, `status_disponibilidade` enum('D','I')
+-   `estoque_lote`: controle granular com **unique composta** `(unidade_id, produto_id, lote)` — índice `unique_estoque_lote`. Tem `quantidade_disponivel`, `data_vencimento`, `data_fabricacao`
 
-// 1. Validar nota fiscal + itens (produto, quantidade, lote, vencimento)- `estoque`: agregação por produto+setor com `quantidade_atual`, `status_disponibilidade` ('D'/'I')
+**Fluxo de entrada** (exemplo real em `EntradaController::add()`):
 
-// 2. Verificar tipo matching: produto.grupoProduto.tipo === setor.tipo- `estoque_lote`: controle granular com unique(`unidade_id`, `produto_id`, `lote`)
-
+```php
+// 1. Validar nota fiscal + itens (produto, quantidade, lote, vencimento)
+// 2. Verificar setor.estoque = true
 // 3. Transaction: criar entrada + itens_entrada
-
-// 4. Para cada item: firstOrCreate em estoque, incrementar quantidade_atual## Modelo de Dados (resumo das migrations)
-
-// 5. Atualizar/criar estoque_lote (upsert por unique key)
-
-```-   `setores`(unidades): id,`polo_id`, `nome`, `descricao`, `status`('A'/'I'),`estoque`(boolean),`tipo`('Medicamento'|'Material'). Usada como`unidade` nas relações de estoque.
-
--   `grupo_produto`: id, `nome`, `status` ('A'/'I'), `tipo` ('Medicamento'|'Material') — define o tipo do produto.
-
-**Entidades Core** (ver `database/migrations/`):- `unidade_medida`: id, `nome`, `quantidade_unidade_minima`, `status` ('A'/'I').
-
--   `setores` (unidades físicas): `tipo` (Medicamento|Material), `estoque` (bool), FK para `unidades` (polos)- `produtos`: id, `nome`, `marca`, `codigo_simpras`, `codigo_barras`, `grupo_produto_id`, `unidade_medida_id`, `status` ('A'/'I').
-
--   `produtos`: `grupo_produto_id` define `tipo` que DEVE casar com `setor.tipo`- `estoque`: id, `produto_id`, `unidade_id` (setores), `quantidade_atual`, `quantidade_minima`, `localizacao`, `status_disponibilidade` ('D' Disponível, 'I' Indisponível').
-
--   `estoque`: agregação por produto+setor com `quantidade_atual`, `status_disponibilidade` ('D'/'I')- `estoque_lote`: id, `unidade_id`, `produto_id`, `lote`, `quantidade_disponivel` (decimal), `data_vencimento`, `data_fabricacao` (nullable). Unique composta (unidade, produto, lote).
-
--   `estoque_lote`: controle granular com unique(`unidade_id`, `produto_id`, `lote`)- `entrada` / `itens_entrada`: notas fiscais + itens com lote, datas de fabricação/vencimento — usados para criar/atualizar `estoque_lote` e `estoque`.
-
--   `movimentacao` / `item_movimentacao`: registros de movimentações (transferência, devolução, saída) entre unidades com itens e quantidades (solicitada/liberada).
+// 4. Para cada item:
+//    - Validar produto.grupoProduto.tipo === setor.tipo (RuntimeException se falhar)
+//    - firstOrCreate em estoque, incrementar quantidade_atual
+//    - firstOrCreate em estoque_lote por unique (unidade+produto+lote), incrementar quantidade_disponivel
+// 5. Auto-atualizar status_disponibilidade: 'D' se quantidade > 0
+```
 
 ## Regras de Negócio Críticas
 
-Relações importantes:
-
 1. **Tipo Matching Obrigatório**: `grupo_produto.tipo` DEVE casar com `setor.tipo` em operações de estoque
+   ❌ Erro: `throw new \RuntimeException('Produto "X" não é compatível com o tipo do setor')`
 
-    ❌ Erro: `throw new \RuntimeException('Produto "X" não é compatível com o tipo do setor')`- `produto.grupo_produto` (grupo define o tipo que deve casar com `setor.tipo`).
-
--   `estoque.produto` e `estoque.unidade` (setor).
-
-2. **Status ao invés de Soft Deletes**: use `status = 'A'|'I'` — NÃO há `deleted_at` - `estoque_lote` refere-se a `produto` e `unidade` (controle por lote).
-
-    Verificar: `where('status', 'A')` em queries
-
-## Regras de Negócio Críticas (inferidas das migrations e codebase)
+2. **Status ao invés de Soft Deletes**: use `status = 'A'|'I'` — NÃO há `deleted_at`
+   Verificar: `where('status', 'A')` em queries
 
 3. **Disponibilidade de Estoque**: `status_disponibilidade` usa 'D' (Disponível) ou 'I' (Indisponível)
+   Auto-atualizado: se `quantidade_atual > 0` → 'D', senão 'I'
 
-    Auto-atualizado: se `quantidade_atual > 0` → 'D', senão 'I'1. Tipo matching: produtos de `grupo_produto.tipo = 'Medicamento'` só são compatíveis com `setores.tipo = 'Medicamento'` quando `setor.estoque = true` — Observers automatizam provisionamento.
+4. **Constraint Única em Lotes**: `estoque_lote(unidade_id, produto_id, lote)` — usar `firstOrCreate` para evitar duplicatas
 
-4. Não usar soft deletes do Eloquent; a aplicação marca `status = 'I'` para inativar registros.
-
-5. **Constraint Única em Lotes**: `estoque_lote(unidade_id, produto_id, lote)` — usar upsert ou `firstOrCreate` para evitar duplicatas3. `status_disponibilidade` em `estoque` usa 'D' (Disponível) e 'I' (Indisponível).
-
-6. `estoque_lote` tem chave única (unidade, produto, lote) — cuidado ao inserir itens de entrada duplicados.
-
-7. **Auto-provisionamento via Observers** (registrado em `AppServiceProvider::boot()`):
-
-    - `ProdutoObserver::created()` → chama `Estoque::criarEstoqueParaNovoProduto()`## Convenções de API e Código
-
+5. **Auto-provisionamento via Observers** (registrado em `AppServiceProvider::boot()`):
+    - `ProdutoObserver::created()` → chama `Estoque::criarEstoqueParaNovoProduto()`
     - `SetoresObserver::created()` → chama `Estoque::criarEstoqueInicialParaSetor()`
+      **Importante**: só cria se `setor.estoque = true` E tipos compatíveis
 
-    **Importante**: só cria se `setor.estoque = true` E tipos compatíveis- Rotas: o projeto historicamente usa POST para operações CRUD e listagens via `routes/api.php`.
-
--   Responses: padrão JSON com chave `status` booleana, `data` para payload (quando sucesso) e `message` em strings; erros retornam `status: false` e código HTTP apropriado.
-
-## Convenções de Código (Padrões Observados)- Eager loading: controllers costumam usar `with()` para trazer relacionamentos (ex.: Produto::with(['grupoProduto','unidadeMedida'])->...)
-
--   Scopes: modelos oferecem scopes (`ativo()`, `porGrupo()`, `disponivel()`, `porUnidade()`) — prefira usá-los.
+## Convenções de API e Código
 
 ### API Response Pattern (SEMPRE seguir)
 
-````php## Observers e Auto-provisionamento
-
+```php
 // Sucesso
-
-return ['status' => true, 'data' => $payload];-   Observers existentes (ex.: `ProdutoObserver`, `SetoresObserver`) são registrados em `AppServiceProvider::boot()` para criar registros de `estoque` automaticamente:
-
-return ['status' => true, 'data' => $payload, 'message' => 'Operação concluída'];    -   Ao criar um `produto`: cria `estoque` para todas as `setores` com `estoque=true` e `tipo` compatível.
-
-    -   Ao criar/ativar um `setor` com `estoque=true`: cria `estoque` para todos os produtos compatíveis.
+return ['status' => true, 'data' => $payload];
+return ['status' => true, 'data' => $payload, 'message' => 'Operação concluída'];
 
 // Erro de validação
-
-return response()->json([Funções úteis esperadas em Models/Service:
-
+return response()->json([
     'status' => false,
-
-    'validacao' => true, -   `Estoque::criarEstoqueParaNovoProduto(Produto $produto)`
-
-    'erros' => $validator->errors()-   `Estoque::criarEstoqueInicialParaUnidade(Setor $unidade)`
-
+    'validacao' => true,
+    'erros' => $validator->errors()
 ], 422);
 
-## Pontos de Atenção (operacionais)
-
 // Erro de negócio
+return response()->json(['status' => false, 'message' => 'Setor sem controle de estoque'], 400);
+```
 
-return response()->json(['status' => false, 'message' => 'Setor sem controle de estoque'], 400);-   Foreign keys usam `->constrained()` com `onDelete('restrict')` — migrações e seeders devem garantir integridade.
+### Estrutura de Controllers
 
-```-   Rotas majoritariamente sem middleware `auth:sanctum` (exceto `/user`). Confirmar se novas rotas precisam de autenticação.
+Métodos padrão esperados (ver `GrupoProdutoController`, `EntradaController`):
 
--   Paginação: `listAll()` espera `per_page` no request.
+-   `add(Request $request)` — validação + criação + log de erros
+-   `update(Request $request)` — validação + atualização
+-   `listAll(Request $request)` — aceita `filters` (array), `paginate` (bool)
+-   `delete($id ou Request)` — soft inativa (`status = 'I'`) ou hard delete conforme FK constraints
+-   `toggleStatus(Request $request)` — alterna 'A'/'I'
 
-### Estrutura de Controllers-   Filtros dinâmicos: controllers aceitam `filters` array com operadores básicos.
-
-Métodos padrão esperados (ver `GrupoProdutoController`, `EntradaController`):-   Log: use `Log::error()` em blocos catch antes de retornar resposta de erro.
-
-- `add(Request $request)` — validação + criação + log de erros
-
-- `update(Request $request)` — validação + atualização## Checklist rápido antes de implementar tarefas
-
-- `listAll(Request $request)` — aceita `filters` (array), `paginate` (bool)
-
-- `delete($id ou Request)` — soft inativa (`status = 'I'`) ou hard delete conforme FK constraints1. Qual entidade(s) será afetada? (produto, estoque, lote, movimentação, entrada)
-
-- `toggleStatus(Request $request)` — alterna 'A'/'I'2. O endpoint deve respeitar tipo matching (grupo_produto.tipo x setor.tipo)?
-
-3. Precisa criar/atualizar `estoque` e/ou `estoque_lote` automaticamente ao processar entrada/movimentação?
-
-### Validação Pattern4. Requisitos de autorização/usuário para a ação (middleware)?
+### Validação Pattern
 
 ```php
-
-$validator = Validator::make($data['nomeEntidade'], [## Próximos passos sugeridos
-
+$validator = Validator::make($data['nomeEntidade'], [
     'campo' => 'required|string|max:255',
-
-    'tipo' => 'required|string|in:Medicamento,Material',-   Me diga qual funcionalidade/endpoints você quer implementar hoje (ex.: endpoint para registrar entrada com atualização de estoque e lotes; endpoint para transferências entre unidades; listagem paginada de produtos por unidade). Eu já li as migrations e entendo onde cada campo está.
-
-], [-   Posso começar criando controllers, requests de validação, serviços e testes mínimos para validar o fluxo.
-
+    'tipo' => 'required|string|in:Medicamento,Material'
+], [
     'campo.required' => 'Mensagem customizada em português',
+]);
 
-]);## Perguntas rápidas para alinhar
-
-
-
-if ($validator->fails()) {1. Deseja que eu mantenha o padrão de usar POST para listagens e CRUD? (recomendado: sim, para compatibilidade)
-
-    return response()->json([2. Nova rota precisa de autenticação (`auth:sanctum`) ou continuará pública?
-
-        'status' => false, 3. Quer que eu atualize/adicione tests PHPUnit para a funcionalidade?
-
+if ($validator->fails()) {
+    return response()->json([
+        'status' => false,
         'validacao' => true,
-
-        'erros' => $validator->errors()---
-
+        'erros' => $validator->errors()
     ], 422);
+}
+```
 
-}Se quiser, eu já atualizo este arquivo com exemplos de payloads e contratos (inputs/outputs) para o endpoint que você escolher implementar agora.
+### Eager Loading (SEMPRE usar para evitar N+1)
 
-````
+```php
+// Exemplo real de Produto
+Produto::with(['grupoProduto', 'unidadeMedida'])->where('status', 'A')->get();
+
+// Entrada com relacionamentos
+Entrada::with(['itens.produto', 'setor', 'fornecedor'])->find($id);
+```
+
+### Scopes Disponíveis (ver Models)
+
+```php
+// Estoque.php
+->disponivel()  // where status_disponibilidade = 'D'
+->porSetor($setorId)
+
+// Produto.php (assumido - verificar implementação)
+->ativo()  // where status = 'A'
+->porGrupo($grupoId)
+```
+
+### Transações para Operações Multi-Tabela
+
+```php
+use Illuminate\Support\Facades\DB;
+
+try {
+    $resultado = DB::transaction(function () use ($data) {
+        $entrada = Entrada::create([...]);
+        foreach ($data['itens'] as $item) {
+            ItensEntrada::create([...]);
+            // Atualizar estoque + lotes
+        }
+        return $entrada;
+    });
+    return ['status' => true, 'data' => $resultado];
+} catch (\Exception $e) {
+    Log::error('Erro ao processar entrada: ' . $e->getMessage());
+    return response()->json(['status' => false, 'message' => 'Erro interno'], 500);
+}
+```
+
+## Rotas e Autenticação
+
+**Padrão de Rotas**: POST para tudo (ver `routes/api.php`)
+
+```php
+Route::post('/entidade/add', [Controller::class, 'add']);
+Route::post('/entidade/update', [Controller::class, 'update']);
+Route::post('/entidade/list', [Controller::class, 'listAll']);  // POST mesmo para listas!
+Route::post('/entidade/delete/{id}', [Controller::class, 'delete']);
+```
+
+**Autenticação**: Maioria das rotas SEM `auth:sanctum` (exceto `/user` e grupo `UsuarioSetor`)  
+⚠️ Confirmar requisitos antes de adicionar middleware
+
+## Desenvolvimento Local
+
+```powershell
+# Setup inicial
+composer install
+copy .env.example .env
+php artisan key:generate
+
+# Configurar .env com DB (ex: progest2)
+# Migrations + seeders
+php artisan migrate --seed
+
+# Rodar servidor
+php artisan serve
+
+# Testes
+vendor/bin/phpunit
+# ou com filtro
+vendor/bin/phpunit --filter=SetoresFornecedoresTest
+```
+
+**Seeders importantes** (ver `DatabaseSeeder.php`):
+
+-   `UnidadesSeeder` → cria polos
+-   `SetoresSeeder` → cria setores (triggers observers!)
+-   `GrupoProdutoSeeder` → define tipos
+-   `ProdutosSeeder` → cria produtos (triggers auto-provisionamento)
+
+## Testes (Padrão RefreshDatabase)
+
+Exemplo real (`tests/Feature/SetoresFornecedoresTest.php`):
+
+```php
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+class MeuTest extends TestCase {
+    use RefreshDatabase;
+
+    public function test_exemplo() {
+        $unidade = Unidade::factory()->create();
+        $payload = ['Setores' => [...], 'fornecedor' => [...]];
+
+        $response = $this->postJson('/api/setores/add', $payload);
+        $response->assertStatus(200)->assertJson(['status' => true]);
+
+        $this->assertDatabaseHas('setores', ['nome' => 'X']);
+    }
+}
+```
+
+## Checklist Pré-Implementação
+
+Antes de criar endpoint/funcionalidade:
+
+1. **Entidades afetadas**: produto/estoque/lote/entrada/movimentacao?
+2. **Tipo matching necessário**: `grupo_produto.tipo` x `setor.tipo`?
+3. **Auto-provisionamento**: criar/atualizar `estoque` e `estoque_lote`?
+4. **Validação**: mensagens em português, regras específicas (datas, enums)?
+5. **Transaction**: operação multi-tabela requer `DB::transaction()`?
+6. **Eager loading**: relacionamentos usados no response?
+7. **Logging**: `Log::error()` em todos os catch blocks
+8. **Foreign Keys**: `onDelete('restrict')` — verificar cascata lógica
+
+## Arquivos-Chave para Consulta Rápida
+
+```
+app/Observers/
+  ProdutoObserver.php      # Auto-cria estoque ao criar produto
+  SetoresObserver.php      # Auto-cria estoque ao criar setor com estoque=true
+
+app/Models/
+  Estoque.php              # Métodos: criarEstoqueParaNovoProduto(), criarEstoqueInicialParaSetor()
+  Produto.php              # Relacionamento: grupoProduto, unidadeMedida
+  EstoqueLote.php          # Unique: (unidade_id, produto_id, lote)
+
+app/Http/Controllers/
+  EntradaController.php    # Exemplo completo: validação, transaction, upsert lotes
+  Cadastros/GrupoProdutoController.php  # Exemplo CRUD simples com padrão response
+
+routes/api.php             # Todas rotas POST (incluindo listas)
+
+database/migrations/
+  *_create_estoque_table.php       # Status 'D'/'I', FK constraints
+  *_create_estoque_lote_table.php  # Unique composta
+  *_create_grupo_produto_table.php # Enum tipo: Medicamento|Material
+
+database/seeders/
+  DatabaseSeeder.php       # Ordem correta de seeders
+```
+
+## Payloads de Exemplo (Contratos Reais)
+
+**POST /api/entrada/add** (EntradaController):
+
+```json
+{
+    "nota_fiscal": "NF123456",
+    "unidade_id": 1,
+    "fornecedor_id": 2,
+    "itens": [
+        {
+            "produto_id": 10,
+            "quantidade": 50,
+            "lote": "L2025001",
+            "data_vencimento": "2026-12-31",
+            "data_fabricacao": "2025-01-15"
+        }
+    ]
+}
+```
+
+**POST /api/grupoProduto/list** (filtros dinâmicos):
+
+```json
+{
+    "filters": [{ "tipo": "Medicamento" }, { "status": "A" }],
+    "paginate": false
+}
+```
+
+## Descobertas do Codebase (Padrões Específicos)
+
+1. **Observers ativados via AppServiceProvider**: `Produto::observe(ProdutoObserver::class)` e `Setores::observe(SetoresObserver::class)` em `boot()`
+
+2. **Métodos estáticos de Estoque para auto-provisionamento**:
+
+    - `Estoque::criarEstoqueParaNovoProduto($produtoId)` busca setores com `estoque=true` e tipo compatível
+    - `Estoque::criarEstoqueInicialParaSetor($setorId)` busca produtos ativos com tipo compatível
+
+3. **Validação de entrada**: `EntradaController` valida `data_vencimento.after:today` e `data_fabricacao.before_or_equal:today`
+
+4. **Unique constraint em estoque_lote**: índice `unique_estoque_lote` impede duplicatas — sempre usar `firstOrCreate` com `['unidade_id', 'produto_id', 'lote']`
+
+5. **Nomes sempre uppercase**: `mb_strtoupper(trim($data['campo']))` em cadastros (nota_fiscal, lote, nome)
+
+6. **Foreign Keys com restrict**: `->constrained('tabela')->onDelete('restrict')` — deletes devem inativar via `status='I'`
+
+7. **User default criado via migration**: `2025_07_07_233833_create_default_admin_user.php` cria admin@admin.com / senha: admin
+
+## Perguntas para Alinhar Nova Implementação
+
+1. Endpoint precisa autenticação (`auth:sanctum`)?
+2. Usar padrão POST para listagem (compatibilidade com frontend)?
+3. Criar testes PHPUnit Feature com `RefreshDatabase`?
+4. Relacionamentos precisam eager loading no response?
+5. Operação multi-tabela? Então precisa transaction + rollback
 
 ## Atualizações rápidas (adicionadas)
 

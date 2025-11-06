@@ -25,7 +25,7 @@ class EntradaController extends Controller
 
         $validator = Validator::make($data, [
             'nota_fiscal' => 'required|string|max:255',
-            'unidade_id' => 'required|exists:Setores,id',
+            'setor_id' => 'required|exists:setores,id',
             'fornecedor_id' => 'required|exists:fornecedores,id',
             'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
@@ -35,8 +35,8 @@ class EntradaController extends Controller
             'itens.*.data_fabricacao' => 'nullable|date|before_or_equal:today',
         ], [
             'nota_fiscal.required' => 'A nota fiscal é obrigatória.',
-            'unidade_id.required' => 'O setor é obrigatório.',
-            'unidade_id.exists' => 'Setor não encontrado.',
+            'setor_id.required' => 'O setor é obrigatório.',
+            'setor_id.exists' => 'Setor não encontrado.',
             'fornecedor_id.required' => 'O fornecedor é obrigatório.',
             'fornecedor_id.exists' => 'Fornecedor não encontrado.',
             'itens.required' => 'Informe ao menos um item para a entrada.',
@@ -64,9 +64,9 @@ class EntradaController extends Controller
             ], 422);
         }
 
-        $unidade = Setores::find($data['unidade_id']);
+        $setor = Setores::find($data['setor_id']);
 
-        if (!$unidade->estoque) {
+        if (!$setor->estoque) {
             return response()->json([
                 'status' => false,
                 'message' => 'O setor selecionado não possui controle de estoque.'
@@ -74,10 +74,10 @@ class EntradaController extends Controller
         }
 
         try {
-            $entrada = DB::transaction(function () use ($data, $unidade) {
+            $entrada = DB::transaction(function () use ($data, $setor) {
                 $entrada = Entrada::create([
                     'nota_fiscal' => mb_strtoupper(trim($data['nota_fiscal'])),
-                    'unidade_id' => $unidade->id,
+                    'setor_id' => $setor->id,
                     'fornecedor_id' => $data['fornecedor_id'],
                 ]);
 
@@ -88,7 +88,7 @@ class EntradaController extends Controller
                         throw new \RuntimeException('Produto não encontrado.');
                     }
 
-                    if (!$produto->grupoProduto || $produto->grupoProduto->tipo !== $unidade->tipo) {
+                    if (!$produto->grupoProduto || $produto->grupoProduto->tipo !== $setor->tipo) {
                         throw new \RuntimeException('Produto "' . $produto->nome . '" não é compatível com o tipo do setor.');
                     }
 
@@ -105,7 +105,7 @@ class EntradaController extends Controller
                     $estoque = Estoque::firstOrCreate(
                         [
                             'produto_id' => $produto->id,
-                            'unidade_id' => $unidade->id,
+                            'unidade_id' => $setor->id,
                         ],
                         [
                             'quantidade_atual' => 0,
@@ -125,7 +125,7 @@ class EntradaController extends Controller
                     // Atualizar ou criar registro de estoque por lote
                     $estoqueLote = EstoqueLote::firstOrCreate(
                         [
-                            'unidade_id' => $unidade->id,
+                            'unidade_id' => $setor->id,
                             'produto_id' => $produto->id,
                             'lote' => mb_strtoupper(trim($item['lote'])),
                         ],
@@ -200,8 +200,8 @@ class EntradaController extends Controller
                         case 'nota_fiscal':
                             $query->where('nota_fiscal', 'like', '%' . trim($value) . '%');
                             break;
-                        case 'unidade_id':
-                            $query->where('unidade_id', $value);
+                        case 'setor_id':
+                            $query->where('setor_id', $value);
                             break;
                         case 'fornecedor_id':
                             $query->where('fornecedor_id', $value);
@@ -266,7 +266,7 @@ class EntradaController extends Controller
         $validator = Validator::make($data, [
             'id' => 'required|exists:entrada,id',
             'nota_fiscal' => 'required|string|max:255',
-            'unidade_id' => 'required|exists:Setores,id',
+            'setor_id' => 'required|exists:setores,id',
             'fornecedor_id' => 'required|exists:fornecedores,id',
             'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
@@ -285,9 +285,9 @@ class EntradaController extends Controller
         }
 
         $entrada = Entrada::with(['itens'])->find($data['id']);
-        $unidade = Setores::find($data['unidade_id']);
+        $setor = Setores::find($data['setor_id']);
 
-        if (!$unidade->estoque) {
+        if (!$setor->estoque) {
             return response()->json([
                 'status' => false,
                 'message' => 'O setor selecionado não possui controle de estoque.'
@@ -295,12 +295,12 @@ class EntradaController extends Controller
         }
 
         try {
-            $entradaAtualizada = DB::transaction(function () use ($data, $entrada, $unidade) {
+            $entradaAtualizada = DB::transaction(function () use ($data, $entrada, $setor) {
                 // Reverter estoque dos itens atuais (tanto estoque geral quanto lotes)
                 foreach ($entrada->itens as $itemExistente) {
                     // Reverter estoque geral
                     $estoque = Estoque::where('produto_id', $itemExistente->produto_id)
-                        ->where('unidade_id', $entrada->unidade_id)
+                        ->where('unidade_id', $entrada->setor_id)
                         ->first();
 
                     if ($estoque) {
@@ -314,7 +314,7 @@ class EntradaController extends Controller
 
                     // Reverter estoque de lote
                     if ($itemExistente->lote) {
-                        $estoqueLote = EstoqueLote::where('unidade_id', $entrada->unidade_id)
+                        $estoqueLote = EstoqueLote::where('unidade_id', $entrada->setor_id)
                             ->where('produto_id', $itemExistente->produto_id)
                             ->where('lote', $itemExistente->lote)
                             ->first();
@@ -332,7 +332,7 @@ class EntradaController extends Controller
                 // Atualiza dados da entrada
                 $entrada->update([
                     'nota_fiscal' => mb_strtoupper(trim($data['nota_fiscal'])),
-                    'unidade_id' => $unidade->id,
+                    'setor_id' => $setor->id,
                     'fornecedor_id' => $data['fornecedor_id'],
                 ]);
 
@@ -343,7 +343,7 @@ class EntradaController extends Controller
                 foreach ($data['itens'] as $item) {
                     $produto = Produto::with('grupoProduto')->find($item['produto_id']);
 
-                    if (!$produto || !$produto->grupoProduto || $produto->grupoProduto->tipo !== $unidade->tipo) {
+                    if (!$produto || !$produto->grupoProduto || $produto->grupoProduto->tipo !== $setor->tipo) {
                         throw new \RuntimeException('Produto "' . $produto->nome . '" não é compatível com o tipo do setor.');
                     }
 
@@ -360,7 +360,7 @@ class EntradaController extends Controller
                     $estoque = Estoque::firstOrCreate(
                         [
                             'produto_id' => $produto->id,
-                            'unidade_id' => $unidade->id,
+                            'unidade_id' => $setor->id,
                         ],
                         [
                             'quantidade_atual' => 0,
@@ -376,7 +376,7 @@ class EntradaController extends Controller
                     // Atualizar ou criar estoque de lote
                     $estoqueLote = EstoqueLote::firstOrCreate(
                         [
-                            'unidade_id' => $unidade->id,
+                            'unidade_id' => $setor->id,
                             'produto_id' => $produto->id,
                             'lote' => mb_strtoupper(trim($item['lote'])),
                         ],
@@ -447,7 +447,7 @@ class EntradaController extends Controller
 
                 foreach ($entrada->itens as $item) {
                     $estoque = Estoque::where('produto_id', $item->produto_id)
-                        ->where('unidade_id', $entrada->unidade_id)
+                        ->where('unidade_id', $entrada->setor_id)
                         ->first();
 
                     if ($estoque) {
@@ -480,4 +480,3 @@ class EntradaController extends Controller
         }
     }
 }
-

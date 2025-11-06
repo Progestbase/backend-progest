@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Setores;
+use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 
 use Illuminate\Support\Facades\DB;
@@ -288,6 +289,213 @@ class SetoresController
         }
 
         return ['status' => true, 'data' => Setores::with(['unidade', 'fornecedoresRelacionados.fornecedor'])->find($Setores->id)];
+    }
+
+    public function listConsumers(Request $request)
+    {
+        try {
+            $data = $request->all();
+
+            if (!isset($data['id'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'ID do setor não fornecido'
+                ], 400);
+            }
+
+            /** @var User|null $user */
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Usuário não autenticado'
+                ], 401);
+            }
+
+            // Apenas admin ou almoxarife podem acessar
+            $hasPermission = DB::table('usuario_setor')
+                ->where('usuario_id', $user->id)
+                ->where('setor_id', $data['id'])
+                ->whereIn('perfil', ['admin', 'almoxarife'])
+                ->exists();
+
+            if (!$hasPermission && !$user->isSuperAdmin()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Usuário não tem permissão para acessar esta lista'
+                ], 403);
+            }
+
+            // Verificar se setor existe
+            $setor = Setores::find($data['id']);
+            if (!$setor) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Setor não encontrado'
+                ], 404);
+            }
+
+            // Obter todos os consumidores (recursivo)
+            $consumers = $this->getConsumersRecursive($data['id']);
+
+            return response()->json([
+                'status' => true,
+                'data' => $consumers
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar consumidores do setor: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao listar consumidores do setor'
+            ], 500);
+        }
+    }
+
+    private function getConsumersRecursive($setorFornecedorId, &$visited = [])
+    {
+        if (in_array($setorFornecedorId, $visited)) {
+            return [];
+        }
+
+        $visited[] = $setorFornecedorId;
+
+        // Buscar setores que têm este setor como fornecedor
+        $directConsumers = DB::table('setor_fornecedor')
+            ->where('setor_fornecedor_id', $setorFornecedorId)
+            ->pluck('setor_solicitante_id')
+            ->toArray();
+
+        $consumers = [];
+
+        // Para cada consumidor direto, buscar seus dados e seus consumidores
+        foreach ($directConsumers as $consumerId) {
+            $setor = Setores::with(['unidade'])->find($consumerId);
+
+            if ($setor) {
+                $consumers[] = [
+                    'id' => $setor->id,
+                    'unidade_id' => $setor->unidade_id,
+                    'nome' => $setor->nome,
+                    'descricao' => $setor->descricao,
+                    'status' => $setor->status,
+                    'estoque' => $setor->estoque,
+                    'tipo' => $setor->tipo,
+                    'unidade' => $setor->unidade,
+                    'consumers' => $this->getConsumersRecursive($consumerId, $visited)
+                ];
+            }
+        }
+
+        return $consumers;
+    }
+
+    public function getDetail(Request $request)
+    {
+        try {
+            $data = $request->all();
+
+            if (!isset($data['id'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'ID do setor não fornecido'
+                ], 400);
+            }
+
+            /** @var User|null $user */
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Usuário não autenticado'
+                ], 401);
+            }
+
+            // Se não for super admin, verificar acesso na tabela usuario_setor
+            if (!$user->isSuperAdmin()) {
+                $hasAccess = DB::table('usuario_setor')
+                    ->where('usuario_id', $user->id)
+                    ->where('setor_id', $data['id'])
+                    ->exists();
+
+                if (!$hasAccess) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Usuário não tem acesso a este setor'
+                    ], 403);
+                }
+            }
+
+            $setor = Setores::with(['unidade'])->find($data['id']);
+
+            if (!$setor) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Setor não encontrado'
+                ], 404);
+            }
+
+            return response()->json([
+                'status' => true,
+                'data' => $setor
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao obter detalhes do setor: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao obter detalhes do setor'
+            ], 500);
+        }
+    }
+
+    public function listWithAccess(Request $request)
+    {
+        try {
+            /** @var User|null $user */
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Usuário não autenticado'
+                ], 401);
+            }
+
+            // Super admin tem acesso a todos os setores
+            if ($user->isSuperAdmin()) {
+                $setores = Setores::with(['unidade'])
+                    ->select('id', 'unidade_id', 'nome', 'descricao', 'status', 'estoque', 'tipo')
+                    ->where('status', 'A')
+                    ->orderBy('nome')
+                    ->get();
+
+                return response()->json([
+                    'status' => true,
+                    'data' => $setores
+                ]);
+            }
+
+            // Usuário comum: busca setores via tabela usuario_setor
+            $setores = Setores::with(['unidade'])
+                ->select('setores.id', 'setores.unidade_id', 'setores.nome', 'setores.descricao', 'setores.status', 'setores.estoque', 'setores.tipo')
+                ->join('usuario_setor', 'setores.id', '=', 'usuario_setor.setor_id')
+                ->where('usuario_setor.usuario_id', $user->id)
+                ->where('setores.status', 'A')
+                ->orderBy('setores.nome')
+                ->get();
+
+            return response()->json([
+                'status' => true,
+                'data' => $setores
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar setores com acesso: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao listar setores'
+            ], 500);
+        }
     }
 
     public function listData(Request $request)
