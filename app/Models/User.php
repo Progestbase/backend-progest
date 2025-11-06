@@ -22,7 +22,6 @@ class User extends Authenticatable
         'name',
         'email',
         'telefone',
-        'matricula',
         'data_nascimento',
         'cpf',
         'status',
@@ -56,9 +55,11 @@ class User extends Authenticatable
      */
     public function setores()
     {
-        // O model `Setores` está no plural, então o Laravel pode inferir a chave pivot errada
-        // Definimos explicitamente as chaves pivot: 'user_id' (para este modelo) e 'setor_id' (para Setores)
-        return $this->belongsToMany(Setores::class, 'setor_user', 'user_id', 'setor_id');
+        // Usar a tabela pivot canônica `usuario_setor` que contém o campo `perfil`
+        // Note: a migration cria as colunas `usuario_id` e `setor_id` (não `user_id`)
+        return $this->belongsToMany(Setores::class, 'usuario_setor', 'usuario_id', 'setor_id')
+            ->withPivot('perfil')
+            ->withTimestamps();
     }
 
     public static function boot()
@@ -69,5 +70,14 @@ class User extends Authenticatable
                 throw new \Exception('O usuário Admin não pode ser excluído.');
             }
         });
+    }
+
+    /**
+     * Usuário super-admin hardcoded (tem todas as permissões)
+     * Retorna true se o email for admin@admin.com
+     */
+    public function isSuperAdmin(): bool
+    {
+        return isset($this->email) && mb_strtolower($this->email) === 'admin@admin.com';
     }
 }

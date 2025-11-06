@@ -73,8 +73,10 @@ class Setores extends Model
      */
     public function usuarios()
     {
-        // Relacionamento many-to-many via tabela pivot 'setor_user'
-        return $this->belongsToMany(User::class, 'setor_user', 'setor_id', 'user_id');
+        // Relacionamento many-to-many via tabela pivot 'usuario_setor' (contém 'perfil')
+        return $this->belongsToMany(User::class, 'usuario_setor', 'setor_id', 'usuario_id')
+            ->withPivot('perfil')
+            ->withTimestamps();
     }
 
     /**

@@ -16,6 +16,7 @@ use App\Http\Controllers\Cadastros\UnidadeController;
 use App\Http\Controllers\EstoqueController;
 use App\Http\Controllers\EstoqueLoteController;
 use App\Http\Controllers\EntradaController;
+use App\Http\Controllers\UsuarioSetorController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -36,6 +37,11 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('countUsers', [UserController::class, 'countUsers']);
 
     // Cadastro de Usuários
+    // Rotas para gerenciamento de vínculo usuário <-> setor
+    Route::post('/usuarioSetor/create', [UsuarioSetorController::class, 'create']);
+    Route::post('/usuarioSetor/update', [UsuarioSetorController::class, 'update']);
+    Route::post('/usuarioSetor/delete', [UsuarioSetorController::class, 'delete']);
+    Route::post('/usuarioSetor/listBySetor', [UsuarioSetorController::class, 'listBySetor']);
 });
 
 

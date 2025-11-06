@@ -21,7 +21,6 @@ class CreateDefaultAdminUser extends Migration
             'email' => 'admin@admin.com',
             'password' => bcrypt('admin'),
             'telefone' => '00000000000',
-            'matricula' => 'ADM001',
             'data_nascimento' => '1990-01-01',
             'cpf' => '00000000000',
             'status' => 'A',

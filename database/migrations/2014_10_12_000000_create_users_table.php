@@ -18,7 +18,6 @@ class CreateUsersTable extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('telefone')->nullable();
-            $table->string('matricula')->unique();
             $table->date('data_nascimento')->nullable();
             $table->string('cpf', 11)->unique();
             $table->enum('status', ['A', 'I'])->default('A')->comment('A = ativo, I = inativo');

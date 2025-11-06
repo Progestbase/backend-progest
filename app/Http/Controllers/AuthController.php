@@ -59,7 +59,6 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:4',
             'cpf' => 'required|string|max:14|unique:users',
-            'matricula' => 'required|string|unique:users',
 
             // 'unidade' => 'required|exists:Setores,id'
         ]);
@@ -92,7 +91,6 @@ class AuthController extends Controller
         $user->name = mb_strtoupper($data['user']['name']);
         $user->email = mb_strtolower($data['user']['email']);
         $user->telefone = isset($data['user']['telefone']) ? preg_replace('/\D/', '', $data['user']['telefone']) : null;
-        $user->matricula = $data['user']['matricula'];
         $user->data_nascimento = $data['user']['data_nascimento'] ?? null;
         $user->cpf = preg_replace('/\D/', '', $data['user']['cpf']);
         $user->status = $data['user']['status'];
@@ -107,18 +105,35 @@ class AuthController extends Controller
                 $incoming = $data['user']['Setores_ids'] ?? $data['user']['Setores'] ?? [];
             }
             if (is_array($incoming) && !empty($incoming)) {
-                $unidadeIds = array_map(function ($u) {
-                    if (is_array($u) && isset($u['id'])) return $u['id'];
-                    if (is_object($u) && isset($u->id)) return $u->id;
-                    return $u;
-                }, $incoming);
-                $unidadeIds = array_filter($unidadeIds, function ($id) {
-                    return is_numeric($id) && $id > 0;
-                });
-
-                if (!empty($unidadeIds)) {
-                    $validIds = \App\Models\Setores::whereIn('id', $unidadeIds)->pluck('id')->toArray();
-                    $user->Setores()->sync($validIds);
+                // Aceita duas formas:
+                // - array de ids: [1,2,3]
+                // - array de objetos: [{id:1, perfil:'admin'}, ...]
+                $syncData = [];
+                foreach ($incoming as $item) {
+                    $id = null;
+                    $perfil = null;
+                    if (is_array($item)) {
+                        $id = $item['id'] ?? ($item['setor_id'] ?? null);
+                        $perfil = $item['perfil'] ?? null;
+                    } elseif (is_object($item)) {
+                        $id = $item->id ?? ($item->setor_id ?? null);
+                        $perfil = $item->perfil ?? null;
+                    } else {
+                        $id = $item;
+                    }
+                    if (!is_numeric($id) || $id <= 0) continue;
+                    // Default perfil quando não informado
+                    $perfil = $perfil ?? 'solicitante';
+                    $syncData[$id] = ['perfil' => $perfil];
+                }
+                if (!empty($syncData)) {
+                    // Validar existência dos setores
+                    $validIds = \App\Models\Setores::whereIn('id', array_keys($syncData))->pluck('id')->toArray();
+                    $filtered = [];
+                    foreach ($validIds as $vid) {
+                        $filtered[$vid] = $syncData[$vid];
+                    }
+                    $user->setores()->sync($filtered);
                 }
             }
 
@@ -130,7 +145,8 @@ class AuthController extends Controller
         }
 
         $user = User::with(['Setores' => function ($q) {
-            $q->select('Setores.id', 'Setores.polo_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
+            // 'polo_id' foi renomeado para 'unidade_id' — selecionar a coluna correta
+            $q->select('Setores.id', 'Setores.unidade_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
         }])->find($user->id);
 
         return ['status' => true, 'data' => $user];
@@ -150,7 +166,6 @@ class AuthController extends Controller
                 'name' => mb_strtoupper($data['name']),
                 'email' => mb_strtolower($data['email']),
                 'telefone' => isset($data['telefone']) ? preg_replace('/\D/', '', $data['telefone']) : null,
-                'matricula' => $data['matricula'],
                 'data_nascimento' => $data['data_nascimento'] ?? null,
                 'cpf' => preg_replace('/\D/', '', $data['cpf']),
                 'status' => $data['status'],
@@ -162,21 +177,34 @@ class AuthController extends Controller
                 $user->save();
             }
 
-            // Normalizar incoming: aceita 'Setores_ids' (ids) ou 'Setores' (array de objetos)
+            // Normalizar incoming: aceita 'Setores_ids' (ids) ou 'Setores' (array de objetos com perfil)
             $incoming = $data['Setores_ids'] ?? $data['Setores'] ?? [];
             if (is_array($incoming) && !empty($incoming)) {
-                $unidadeIds = array_map(function ($u) {
-                    if (is_array($u) && isset($u['id'])) return $u['id'];
-                    if (is_object($u) && isset($u->id)) return $u->id;
-                    return $u;
-                }, $incoming);
-                $unidadeIds = array_filter($unidadeIds, function ($id) {
-                    return is_numeric($id) && $id > 0;
-                });
-
-                // Validar existência
-                $validIds = Setores::whereIn('id', $unidadeIds)->pluck('id')->toArray();
-                $user->Setores()->sync($validIds);
+                $syncData = [];
+                foreach ($incoming as $item) {
+                    $id = null;
+                    $perfil = null;
+                    if (is_array($item)) {
+                        $id = $item['id'] ?? ($item['setor_id'] ?? null);
+                        $perfil = $item['perfil'] ?? null;
+                    } elseif (is_object($item)) {
+                        $id = $item->id ?? ($item->setor_id ?? null);
+                        $perfil = $item->perfil ?? null;
+                    } else {
+                        $id = $item;
+                    }
+                    if (!is_numeric($id) || $id <= 0) continue;
+                    $perfil = $perfil ?? 'solicitante';
+                    $syncData[$id] = ['perfil' => $perfil];
+                }
+                if (!empty($syncData)) {
+                    $validIds = Setores::whereIn('id', array_keys($syncData))->pluck('id')->toArray();
+                    $filtered = [];
+                    foreach ($validIds as $vid) {
+                        $filtered[$vid] = $syncData[$vid];
+                    }
+                    $user->setores()->sync($filtered);
+                }
             }
 
             DB::commit();
@@ -187,7 +215,7 @@ class AuthController extends Controller
         }
 
         $user = User::with(['Setores' => function ($q) {
-            $q->select('Setores.id', 'Setores.polo_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
+            $q->select('Setores.id', 'Setores.unidade_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
         }])->find($user->id);
 
         return response()->json(['status' => true, 'data' => $user]);
@@ -200,7 +228,6 @@ class AuthController extends Controller
             'name',
             'email',
             'cpf',
-            'matricula',
             'telefone',
             'data_nascimento',
             'status',
@@ -212,7 +239,7 @@ class AuthController extends Controller
     public function listData(Request $request)
     {
         $user = User::with(['Setores' => function ($q) {
-            $q->select('Setores.id', 'Setores.polo_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
+            $q->select('Setores.id', 'Setores.unidade_id', 'Setores.nome', 'Setores.descricao', 'Setores.status', 'Setores.estoque', 'Setores.tipo');
         }])->find($request->id);
 
         if (!$user) {
