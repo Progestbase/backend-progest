@@ -227,6 +227,7 @@ class SetoresController
 
                 // Processar incoming: criar ou atualizar
                 foreach ($incoming as $f) {
+                    /** @var array $f */
                     $validatorF = Validator::make($f, [
                         'setor_fornecedor_id' => 'required|exists:setores,id',
                         'tipo_produto' => 'required|in:Medicamento,Material',
@@ -294,6 +295,7 @@ class SetoresController
     public function listConsumers(Request $request)
     {
         try {
+            /** @var array $data */
             $data = $request->all();
 
             if (!isset($data['id'])) {
@@ -393,6 +395,7 @@ class SetoresController
     public function getDetail(Request $request)
     {
         try {
+            /** @var array $data */
             $data = $request->all();
 
             if (!isset($data['id'])) {
@@ -427,7 +430,7 @@ class SetoresController
                 }
             }
 
-            $setor = Setores::with(['unidade'])->find($data['id']);
+            $setor = Setores::with(['unidade', 'fornecedoresRelacionados.fornecedor'])->find($data['id']);
 
             if (!$setor) {
                 return response()->json([
@@ -436,9 +439,38 @@ class SetoresController
                 ], 404);
             }
 
+            // Transformar para garantir o formato esperado pelo frontend
+            $result = $setor->toArray();
+
+            $fornecedores = [];
+            foreach ($setor->fornecedoresRelacionados as $rel) {
+                $fornecedorObj = null;
+                if ($rel->fornecedor) {
+                    $fornecedorObj = [
+                        'id' => $rel->fornecedor->id,
+                        'nome' => $rel->fornecedor->nome ?? null,
+                        'descricao' => $rel->fornecedor->descricao ?? null,
+                        'tipo' => $rel->fornecedor->tipo ?? null,
+                        'estoque' => isset($rel->fornecedor->estoque) ? (bool) $rel->fornecedor->estoque : null,
+                    ];
+                }
+
+                $fornecedores[] = [
+                    'id' => $rel->id,
+                    'setor_fornecedor_id' => $rel->setor_fornecedor_id,
+                    'tipo_produto' => $rel->tipo_produto,
+                    'created_at' => $rel->created_at ? $rel->created_at->toDateTimeString() : null,
+                    'updated_at' => $rel->updated_at ? $rel->updated_at->toDateTimeString() : null,
+                    'fornecedor' => $fornecedorObj,
+                ];
+            }
+
+            // Garantir chave consistente para o front
+            $result['fornecedores_relacionados'] = $fornecedores;
+
             return response()->json([
                 'status' => true,
-                'data' => $setor
+                'data' => $result
             ]);
         } catch (\Exception $e) {
             Log::error('Erro ao obter detalhes do setor: ' . $e->getMessage());
