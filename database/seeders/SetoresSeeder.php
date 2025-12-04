@@ -54,19 +54,18 @@ class SetoresSeeder extends Seeder
         $clinicaMed = DB::table('setores')->where('nome', mb_strtoupper('Clínica Médica'))->first();
         $emergencia = DB::table('setores')->where('nome', mb_strtoupper('Emergência'))->first();
 
-        // Criar relações: todos apontam para Farmácia Central como fornecedor (tipo Medicamento)
+        // Criar relações: todos apontam para Farmácia Central como fornecedor
         $relations = [];
-        if ($farmDisp) $relations[] = ['setor_solicitante_id' => $farmDisp->id, 'setor_fornecedor_id' => $farmaciaCentral->id, 'tipo_produto' => 'Medicamento'];
-        if ($satEmerg) $relations[] = ['setor_solicitante_id' => $satEmerg->id, 'setor_fornecedor_id' => $farmaciaCentral->id, 'tipo_produto' => 'Medicamento'];
-        if ($centroCirc) $relations[] = ['setor_solicitante_id' => $centroCirc->id, 'setor_fornecedor_id' => $farmaciaCentral->id, 'tipo_produto' => 'Medicamento'];
-        if ($clinicaMed) $relations[] = ['setor_solicitante_id' => $clinicaMed->id, 'setor_fornecedor_id' => $farmaciaCentral->id, 'tipo_produto' => 'Medicamento'];
-        if ($emergencia) $relations[] = ['setor_solicitante_id' => $emergencia->id, 'setor_fornecedor_id' => $farmaciaCentral->id, 'tipo_produto' => 'Medicamento'];
+        if ($farmDisp) $relations[] = ['setor_solicitante_id' => $farmDisp->id, 'setor_fornecedor_id' => $farmaciaCentral->id];
+        if ($satEmerg) $relations[] = ['setor_solicitante_id' => $satEmerg->id, 'setor_fornecedor_id' => $farmaciaCentral->id];
+        if ($centroCirc) $relations[] = ['setor_solicitante_id' => $centroCirc->id, 'setor_fornecedor_id' => $farmaciaCentral->id];
+        if ($clinicaMed) $relations[] = ['setor_solicitante_id' => $clinicaMed->id, 'setor_fornecedor_id' => $farmaciaCentral->id];
+        if ($emergencia) $relations[] = ['setor_solicitante_id' => $emergencia->id, 'setor_fornecedor_id' => $farmaciaCentral->id];
 
         foreach ($relations as $r) {
             DB::table('setor_fornecedor')->insert([
                 'setor_solicitante_id' => $r['setor_solicitante_id'],
                 'setor_fornecedor_id' => $r['setor_fornecedor_id'],
-                'tipo_produto' => $r['tipo_produto'],
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

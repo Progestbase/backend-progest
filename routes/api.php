@@ -84,9 +84,12 @@ Route::post('/setores/list', [SetoresController::class, 'listAll']);
 Route::post('/setores/listData', [SetoresController::class, 'listData']);
 Route::post('/setores/delete/{id}', [SetoresController::class, 'delete']);
 Route::post('/setores/toggleStatus', [SetoresController::class, 'toggleStatus']);
+Route::post('/setores/addFornecedor', [SetoresController::class, 'addFornecedor']);
+Route::post('/setores/removeFornecedor', [SetoresController::class, 'removeFornecedor']);
 Route::middleware('auth:sanctum')->post('/setores/listWithAccess', [SetoresController::class, 'listWithAccess']);
 Route::middleware('auth:sanctum')->post('/setores/getDetail', [SetoresController::class, 'getDetail']);
 Route::middleware('auth:sanctum')->post('/setores/listConsumers', [SetoresController::class, 'listConsumers']);
+Route::middleware('auth:sanctum')->post('/setores/listFornecedoresParaSetor', [SetoresController::class, 'listFornecedoresParaSetor']);
 
 // Rotas dos módulos produtos, categoriasProdutos e unidadesMedida foram removidas
 // Use os novos módulos: Produto, GrupoProduto e UnidadeMedida
@@ -114,6 +117,7 @@ Route::post('/produtos/listData', [ProdutoController::class, 'listData']);
 Route::post('/produtos/delete', [ProdutoController::class, 'delete']);
 Route::post('/produtos/toggleStatus', [ProdutoController::class, 'toggleStatus']);
 Route::post('/produtos/dadosAuxiliares', [ProdutoController::class, 'getDadosAuxiliares']);
+Route::post('/produtos/listByTipo', [ProdutoController::class, 'listByTipo']);
 
 Route::post('/entrada/add', [EntradaController::class, 'add']);
 Route::post('/entrada/list', [EntradaController::class, 'list']);

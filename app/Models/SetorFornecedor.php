@@ -13,8 +13,7 @@ class SetorFornecedor extends Model
 
     protected $fillable = [
         'setor_solicitante_id',
-        'setor_fornecedor_id',
-        'tipo_produto'
+        'setor_fornecedor_id'
     ];
 
     public function solicitante()

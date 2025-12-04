@@ -669,4 +669,151 @@ class SetoresController
 
         return $references;
     }
+    public function addFornecedor(Request $request)
+    {
+        try {
+            $data = $request->all();
+
+            $validator = Validator::make($data, [
+                'setor_solicitante_id' => 'required|exists:setores,id',
+                'setor_fornecedor_id' => 'required|exists:setores,id',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'validacao' => true,
+                    'erros' => $validator->errors()
+                ], 422);
+            }
+
+            // Verificar se o setor fornecedor tem controle de estoque
+            $setorFornecedor = DB::table('setores')->where('id', $data['setor_fornecedor_id'])->first();
+            if (!$setorFornecedor || !$setorFornecedor->estoque) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'O setor selecionado não possui controle de estoque e não pode ser um fornecedor.'
+                ], 422);
+            }
+
+            // Verificar se já existe
+            $exists = DB::table('setor_fornecedor')
+                ->where('setor_solicitante_id', $data['setor_solicitante_id'])
+                ->where('setor_fornecedor_id', $data['setor_fornecedor_id'])
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Este fornecedor já está vinculado a este setor.'
+                ], 422);
+            }
+
+            DB::table('setor_fornecedor')->insert([
+                'setor_solicitante_id' => $data['setor_solicitante_id'],
+                'setor_fornecedor_id' => $data['setor_fornecedor_id'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Fornecedor adicionado com sucesso.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao adicionar fornecedor: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao adicionar fornecedor.'
+            ], 500);
+        }
+    }
+
+    public function removeFornecedor(Request $request)
+    {
+        try {
+            $data = $request->all();
+
+            // Aceita ID do relacionamento OU par de IDs
+            if (isset($data['id'])) {
+                DB::table('setor_fornecedor')->where('id', $data['id'])->delete();
+            } elseif (isset($data['setor_solicitante_id']) && isset($data['setor_fornecedor_id'])) {
+                DB::table('setor_fornecedor')
+                    ->where('setor_solicitante_id', $data['setor_solicitante_id'])
+                    ->where('setor_fornecedor_id', $data['setor_fornecedor_id'])
+                    ->delete();
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Dados insuficientes para remoção.'
+                ], 400);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Fornecedor removido com sucesso.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao remover fornecedor: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao remover fornecedor.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Lista os setores fornecedores disponíveis para um setor solicitante.
+     * Usado no formulário de movimentações para popular o dropdown de origem.
+     */
+    public function listFornecedoresParaSetor(Request $request)
+    {
+        try {
+            $data = $request->all();
+
+            if (!isset($data['setor_id'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'ID do setor não fornecido'
+                ], 400);
+            }
+
+            $setorId = $data['setor_id'];
+
+            // Verificar se o setor existe
+            $setor = Setores::find($setorId);
+            if (!$setor) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Setor não encontrado'
+                ], 404);
+            }
+
+            // Buscar fornecedores relacionados a este setor (como solicitante)
+            $fornecedores = DB::table('setor_fornecedor')
+                ->join('setores', 'setores.id', '=', 'setor_fornecedor.setor_fornecedor_id')
+                ->where('setor_fornecedor.setor_solicitante_id', $setorId)
+                ->where('setores.status', 'A')
+                ->select(
+                    'setores.id',
+                    'setores.nome',
+                    'setores.tipo',
+                    'setores.estoque',
+                    'setor_fornecedor.id as relacao_id'
+                )
+                ->orderBy('setores.nome')
+                ->get();
+
+            return response()->json([
+                'status' => true,
+                'data' => $fornecedores
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar fornecedores para setor: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao listar fornecedores'
+            ], 500);
+        }
+    }
 }

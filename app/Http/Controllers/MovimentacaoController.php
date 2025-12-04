@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Movimentacao;
 use App\Models\ItemMovimentacao;
+use App\Models\Estoque;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
@@ -89,8 +90,8 @@ class MovimentacaoController extends Controller
             return response()->json(['status' => false, 'message' => 'setor_id (ou unidade_id) é obrigatório'], 422);
         }
 
-        // Regras: rascunho aparece apenas para o setor que solicitou (origem). Quando setor é destino, rascunhos não aparecem.
-        $movs = Movimentacao::with(['usuario', 'setorOrigem', 'setorDestino', 'itens'])
+        // Regras: rascunho aparece apenas para quem solicitou (destino). Pendentes aparecem para ambos.
+        $movs = Movimentacao::with(['usuario', 'setorOrigem', 'setorDestino', 'itens.produto'])
             ->where(function ($q) use ($setorId) {
                 $q->where('setor_origem_id', $setorId)
                     ->orWhere('setor_destino_id', $setorId);
@@ -99,7 +100,7 @@ class MovimentacaoController extends Controller
             ->get()
             ->filter(function ($m) use ($setorId) {
                 if ($m->status_solicitacao === 'C') { // rascunho
-                    return $m->setor_origem_id == $setorId; // só mostrar se o setor for origem
+                    return $m->setor_destino_id == $setorId; // só mostrar rascunho para quem solicitou (destino)
                 }
                 return true;
             })
@@ -130,32 +131,123 @@ class MovimentacaoController extends Controller
     // Processar movimentação: aprovar, reprovar, ou mover rascunho->pendente
     public function process(Request $request, $id)
     {
-        $mov = Movimentacao::find($id);
+        $mov = Movimentacao::with('itens.produto')->find($id);
         if (!$mov) return response()->json(['status' => false, 'message' => 'Movimentação não encontrada'], 404);
 
-        $action = $request->input('action'); // 'approve','reject','submit'
+        $action = $request->input('action'); // 'approve','reject','submit','cancel'
         $aprovadorId = $request->input('aprovador_usuario_id');
+        $itens = $request->input('itens'); // array de itens com quantidade_liberada ajustada
 
-        if (!in_array($action, ['approve', 'reject', 'submit'])) {
+        if (!in_array($action, ['approve', 'reject', 'submit', 'cancel'])) {
             return response()->json(['status' => false, 'message' => 'action inválida'], 422);
         }
 
         try {
+            DB::beginTransaction();
+
             if ($action === 'approve') {
+                // Preparar mapa de quantidades liberadas
+                $quantidadesLiberadas = [];
+                if (!empty($itens) && is_array($itens)) {
+                    foreach ($itens as $itemData) {
+                        if (isset($itemData['id']) && isset($itemData['quantidade_liberada'])) {
+                            $quantidadesLiberadas[$itemData['id']] = (int) $itemData['quantidade_liberada'];
+                        }
+                    }
+                }
+
+                // Validar estoque da origem antes de aprovar
+                $errosEstoque = [];
+                foreach ($mov->itens as $item) {
+                    $qtdLiberar = $quantidadesLiberadas[$item->id] ?? $item->quantidade_solicitada;
+
+                    if ($qtdLiberar <= 0) continue; // Pular itens com quantidade zero
+
+                    // Buscar estoque do produto na origem
+                    $estoqueOrigem = Estoque::where('produto_id', $item->produto_id)
+                        ->where('unidade_id', $mov->setor_origem_id)
+                        ->first();
+
+                    if (!$estoqueOrigem) {
+                        $nomeProduto = $item->produto?->nome ?? "ID {$item->produto_id}";
+                        $errosEstoque[] = "Produto '{$nomeProduto}' não encontrado no estoque de origem.";
+                        continue;
+                    }
+
+                    if ($estoqueOrigem->quantidade_atual < $qtdLiberar) {
+                        $nomeProduto = $item->produto?->nome ?? "ID {$item->produto_id}";
+                        $errosEstoque[] = "Estoque insuficiente para '{$nomeProduto}'. Disponível: {$estoqueOrigem->quantidade_atual}, Solicitado: {$qtdLiberar}.";
+                    }
+                }
+
+                if (!empty($errosEstoque)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Estoque insuficiente para aprovar a movimentação.',
+                        'erros' => $errosEstoque
+                    ], 422);
+                }
+
+                // Atualizar quantidades liberadas e transferir estoque
+                foreach ($mov->itens as $item) {
+                    $qtdLiberar = $quantidadesLiberadas[$item->id] ?? $item->quantidade_solicitada;
+
+                    // Atualizar quantidade_liberada no item
+                    $item->quantidade_liberada = $qtdLiberar;
+                    $item->save();
+
+                    if ($qtdLiberar <= 0) continue;
+
+                    // Deduzir do estoque de origem
+                    Estoque::where('produto_id', $item->produto_id)
+                        ->where('unidade_id', $mov->setor_origem_id)
+                        ->decrement('quantidade_atual', $qtdLiberar);
+
+                    // Adicionar ao estoque de destino (criar se não existir)
+                    $estoqueDestino = Estoque::firstOrCreate(
+                        [
+                            'produto_id' => $item->produto_id,
+                            'unidade_id' => $mov->setor_destino_id
+                        ],
+                        [
+                            'quantidade_atual' => 0,
+                            'quantidade_minima' => 0,
+                            'status_disponibilidade' => 'D'
+                        ]
+                    );
+
+                    $estoqueDestino->increment('quantidade_atual', $qtdLiberar);
+                }
+
                 $mov->status_solicitacao = 'A';
                 $mov->aprovador_usuario_id = $aprovadorId;
-                // aqui poderia vir lógica para alocar lotes e atualizar estoque
+
             } elseif ($action === 'reject') {
                 $mov->status_solicitacao = 'R';
                 $mov->aprovador_usuario_id = $aprovadorId;
             } elseif ($action === 'submit') {
                 // sair de rascunho para pendente
                 $mov->status_solicitacao = 'P';
+            } elseif ($action === 'cancel') {
+                // solicitante cancelando o pedido pendente
+                if ($mov->status_solicitacao !== 'P') {
+                    DB::rollBack();
+                    return response()->json(['status' => false, 'message' => 'Só é possível cancelar solicitações pendentes'], 422);
+                }
+                $mov->status_solicitacao = 'X'; // X = Cancelado pelo solicitante
             }
+
             $mov->save();
+            DB::commit();
+
+            // Recarregar com relacionamentos
+            $mov->load(['itens.produto', 'usuario', 'setorOrigem', 'setorDestino']);
+
             return response()->json(['status' => true, 'data' => $mov]);
         } catch (\Exception $e) {
-            Log::error($e);
+            DB::rollBack();
+            Log::error('Erro ao processar movimentação: ' . $e->getMessage(), ['exception' => $e]);
             return response()->json(['status' => false, 'message' => 'Erro ao processar movimentação'], 500);
         }
     }

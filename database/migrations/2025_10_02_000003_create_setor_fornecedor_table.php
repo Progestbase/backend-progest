@@ -17,11 +17,10 @@ class CreateSetorFornecedorTable extends Migration
             $table->id();
             $table->foreignId('setor_solicitante_id')->constrained('setores')->onDelete('restrict');
             $table->foreignId('setor_fornecedor_id')->constrained('setores')->onDelete('restrict');
-            $table->enum('tipo_produto', ['Medicamento', 'Material']);
             $table->timestamps();
 
-            // Garantir que um setor tenha apenas uma fornecedora por tipo de produto
-            $table->unique(['setor_solicitante_id', 'tipo_produto']);
+            // Garantir que um setor tenha apenas uma vez o mesmo fornecedor
+            $table->unique(['setor_solicitante_id', 'setor_fornecedor_id']);
         });
     }
 

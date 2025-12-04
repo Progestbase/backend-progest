@@ -370,4 +370,44 @@ class ProdutoController
             ], 500);
         }
     }
+
+    /**
+     * Listar produtos filtrados por tipo (Medicamento/Material).
+     * Usado no formulário de movimentações para filtrar produtos pelo tipo do setor fornecedor.
+     */
+    public function listByTipo(Request $request)
+    {
+        try {
+            $data = $request->all();
+            $tipo = $data['tipo'] ?? null;
+
+            if (!$tipo) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tipo é obrigatório'
+                ], 400);
+            }
+
+            // Buscar produtos cujo grupo tem o tipo especificado
+            $produtos = Produto::with(['grupoProduto', 'unidadeMedida'])
+                ->whereHas('grupoProduto', function ($query) use ($tipo) {
+                    $query->where('tipo', $tipo);
+                })
+                ->where('status', 'A')
+                ->select('id', 'nome', 'marca', 'codigo_simpras', 'grupo_produto_id', 'unidade_medida_id')
+                ->orderBy('nome')
+                ->get();
+
+            return response()->json([
+                'status' => true,
+                'data' => $produtos
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao listar produtos por tipo: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro interno do servidor'
+            ], 500);
+        }
+    }
 }
