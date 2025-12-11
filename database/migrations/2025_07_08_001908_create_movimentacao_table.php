@@ -22,7 +22,7 @@ class CreateMovimentacaoTable extends Migration
             $table->dateTime('data_hora');
             $table->text('observacao')->nullable();
             // Status: A = Aprovado, R = Reprovado, P = Pendente, C = Rascunho
-            $table->enum('status_solicitacao', ['A', 'R', 'P', 'C'])->default('P')->comment('A=Aprovado,R=Reprovado,P=Pendente,C=Rascunho');
+            $table->enum('status_solicitacao', ['A', 'R', 'P', 'C', 'X'])->default('P')->comment('A=Aprovado,R=Reprovado,P=Pendente,C=Rascunho,X=Cancelado');
             $table->foreignId('aprovador_usuario_id')->nullable()->constrained('users')->onDelete('restrict');
             $table->timestamps();
         });
