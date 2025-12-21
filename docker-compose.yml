@@ -39,6 +39,13 @@ services:
             # Configuração do DOMÍNIO DA API
             - "traefik.http.routers.progest-api.rule=Host(`hgvcprogrest-api.davidjunior.dev.br`)"
             - "traefik.http.routers.progest-api.entrypoints=web"
+            # Middleware CORS
+            - "traefik.http.routers.progest-api.middlewares=progest-cors"
+            - "traefik.http.middlewares.progest-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
+            - "traefik.http.middlewares.progest-cors.headers.accesscontrolallowheaders=*"
+            - "traefik.http.middlewares.progest-cors.headers.accesscontrolalloworiginlist=*"
+            - "traefik.http.middlewares.progest-cors.headers.accesscontrolmaxage=100"
+            - "traefik.http.middlewares.progest-cors.headers.addvaryheader=true"
             # Porta interna onde a API roda (80)
             - "traefik.http.services.progest-api.loadbalancer.server.port=80"
 
