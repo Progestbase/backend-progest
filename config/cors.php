@@ -17,7 +17,10 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie', '/user/add'],
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://localhost:5173'],
+    'allowed_origins' => [
+        'http://localhost:5173',
+        'https://hgvcprogrest.davidjunior.dev.br',
+    ],
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
     'exposed_headers' => [],
