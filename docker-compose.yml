@@ -38,8 +38,7 @@ services:
             - "traefik.enable=true"
             # Configuração do DOMÍNIO DA API
             - "traefik.http.routers.progest-api.rule=Host(`hgvcprogrest-api.davidjunior.dev.br`)"
-            - "traefik.http.routers.progest-api.entrypoints=websecure"
-            - "traefik.http.routers.progest-api.tls.certresolver=myresolver"
+            - "traefik.http.routers.progest-api.entrypoints=web"
             # Porta interna onde a API roda (80)
             - "traefik.http.services.progest-api.loadbalancer.server.port=80"
 

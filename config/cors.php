@@ -20,6 +20,7 @@ return [
     'allowed_origins' => [
         'http://localhost:5173',
         'https://hgvcprogrest.davidjunior.dev.br',
+        'http://hgvcprogrest.davidjunior.dev.br',
     ],
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],

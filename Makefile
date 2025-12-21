@@ -3,7 +3,7 @@
 # ==========================================
 
 # O alvo 'deploy' automatiza o processo de atualização e reinicialização do ambiente Docker.
-deploy: docker-down docker-up migrate
+deploy: docker-down docker-up cache-clear migrate
 
 # Passo 1: Derruba os contêineres existentes
 docker-down:
