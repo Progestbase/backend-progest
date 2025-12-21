@@ -28,6 +28,15 @@ use App\Http\Controllers\UsuarioSetorController;
 |
 */
 
+// Health check - rota pública para testar se a API está funcionando
+Route::get('/health', function () {
+    return response()->json([
+        'status' => 'ok',
+        'message' => 'API is running',
+        'timestamp' => now()->toIso8601String(),
+    ]);
+});
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
