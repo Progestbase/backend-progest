@@ -15,8 +15,7 @@ class UnidadesSeeder extends Seeder
      */
     public function run()
     {
-        // Garantir que a tabela esteja limpa antes de repovoar (evita duplicatas e registros indesejados)
-        DB::table('unidades')->truncate();
+        // Usar updateOrInsert para evitar erros de foreign key constraint
 
         $unidades = [
             ['nome' => 'Hospital Geral', 'status' => 'A'],
@@ -28,12 +27,14 @@ class UnidadesSeeder extends Seeder
         $now = Carbon::now();
 
         foreach ($unidades as $unidade) {
-            DB::table('unidades')->insert([
-                'nome' => $unidade['nome'],
-                'status' => $unidade['status'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            DB::table('unidades')->updateOrInsert(
+                ['nome' => $unidade['nome']],
+                [
+                    'status' => $unidade['status'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
         }
     }
 }

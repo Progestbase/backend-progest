@@ -16,34 +16,36 @@ class SetoresSeeder extends Seeder
     public function run()
     {
         $now = Carbon::now();
-        // Limpar setores e relações antigas (seeder idempotente)
-        DB::table('setor_fornecedor')->delete();
-        DB::table('setores')->delete();
 
         // Buscar ID da unidade HGVC (Todos os setores serão desta unidade)
-        $poloHGVC = DB::table('unidades')->where('nome', 'Hospital Geral')->first()->id;
+        $poloHGVC = DB::table('unidades')->where('nome', 'Hospital Geral')->first();
+        if (!$poloHGVC) {
+            return; // Unidade não existe ainda
+        }
 
         // Inserir somente os 6 setores da imagem (todos no HGVC)
         $toInsert = [
-            ['unidade_id' => $poloHGVC, 'nome' => 'Farmácia Central', 'descricao' => 'Farmácia Central que atende as clínicas', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
-            ['unidade_id' => $poloHGVC, 'nome' => 'Farmácia de Dispensação', 'descricao' => 'Central de Abastecimento Farmacêutico', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
-            ['unidade_id' => $poloHGVC, 'nome' => 'Satélite da Emergência', 'descricao' => 'Farmácia Satélite do Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
-            ['unidade_id' => $poloHGVC, 'nome' => 'Centro Cirúrgico', 'descricao' => 'Centro Cirúrgico', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
-            ['unidade_id' => $poloHGVC, 'nome' => 'Clínica Médica', 'descricao' => 'Clínica Médica', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
-            ['unidade_id' => $poloHGVC, 'nome' => 'Emergência', 'descricao' => 'Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC->id, 'nome' => 'Farmácia Central', 'descricao' => 'Farmácia Central que atende as clínicas', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC->id, 'nome' => 'Farmácia de Dispensação', 'descricao' => 'Central de Abastecimento Farmacêutico', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC->id, 'nome' => 'Satélite da Emergência', 'descricao' => 'Farmácia Satélite do Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => true, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC->id, 'nome' => 'Centro Cirúrgico', 'descricao' => 'Centro Cirúrgico', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC->id, 'nome' => 'Clínica Médica', 'descricao' => 'Clínica Médica', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
+            ['unidade_id' => $poloHGVC->id, 'nome' => 'Emergência', 'descricao' => 'Setor de Emergência', 'tipo' => 'Medicamento', 'estoque' => false, 'status' => 'A'],
         ];
 
         foreach ($toInsert as $row) {
-            DB::table('setores')->insert([
-                'unidade_id' => $row['unidade_id'],
-                'nome' => mb_strtoupper($row['nome']),
-                'descricao' => $row['descricao'],
-                'tipo' => $row['tipo'],
-                'estoque' => $row['estoque'],
-                'status' => $row['status'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            DB::table('setores')->updateOrInsert(
+                ['nome' => mb_strtoupper($row['nome'])],
+                [
+                    'unidade_id' => $row['unidade_id'],
+                    'descricao' => $row['descricao'],
+                    'tipo' => $row['tipo'],
+                    'estoque' => $row['estoque'],
+                    'status' => $row['status'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
         }
 
         // Recuperar IDs para criar relações de fornecedor
@@ -63,12 +65,16 @@ class SetoresSeeder extends Seeder
         if ($emergencia) $relations[] = ['setor_solicitante_id' => $emergencia->id, 'setor_fornecedor_id' => $farmaciaCentral->id];
 
         foreach ($relations as $r) {
-            DB::table('setor_fornecedor')->insert([
-                'setor_solicitante_id' => $r['setor_solicitante_id'],
-                'setor_fornecedor_id' => $r['setor_fornecedor_id'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
+            DB::table('setor_fornecedor')->updateOrInsert(
+                [
+                    'setor_solicitante_id' => $r['setor_solicitante_id'],
+                    'setor_fornecedor_id' => $r['setor_fornecedor_id'],
+                ],
+                [
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
         }
     }
 }
