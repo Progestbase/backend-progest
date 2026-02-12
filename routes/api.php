@@ -17,6 +17,7 @@ use App\Http\Controllers\EstoqueController;
 use App\Http\Controllers\EstoqueLoteController;
 use App\Http\Controllers\EntradaController;
 use App\Http\Controllers\UsuarioSetorController;
+use App\Http\Controllers\RelatoriosController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -166,3 +167,9 @@ Route::post('/grupoProduto/delete/{id}', [GrupoProdutoController::class, 'delete
 // Rotas para controle de lotes no estoque
 Route::post('/estoqueLote/list', [EstoqueLoteController::class, 'list']);
 Route::post('/estoqueLote/updateQuantidade', [EstoqueLoteController::class, 'updateQuantidade']);
+
+// Rotas para relatórios
+Route::post('/relatorios/entradas/list', [RelatoriosController::class, 'listEntradasReport']);
+Route::post('/relatorios/movimentacoes/list', [RelatoriosController::class, 'listMovimentacoesReport']);
+Route::post('/relatorios/saidas/list', [RelatoriosController::class, 'listSaidasReport']);
+
