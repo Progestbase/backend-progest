@@ -34,10 +34,11 @@ class EstoqueController
         }
 
         $estoque = new Estoque;
-        $estoque->produto_id        = mb_strtoupper($data['estoque']['produto_id']);
-        $estoque->unidade_id          = mb_strtoupper($data['estoque']['unidade_id']);
-        $estoque->quantidade  = mb_strtoupper($data['estoque']['quantidade']);
-        $estoque->status        = $data['estoque']['status'] ?? 'A';
+        $estoque->produto_id = $data['estoque']['produto_id'];
+        $estoque->unidade_id = $data['estoque']['unidade_id'];
+        // CORREÇÃO: O banco espera 'quantidade_atual', mas o front envia 'quantidade'
+        $estoque->quantidade_atual = $data['estoque']['quantidade'];
+        $estoque->quantidade_minima = $data['estoque']['quantidade_minima'] ?? 0;
 
         $estoque->save();
 

@@ -6,6 +6,8 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Event;
+use App\Models\Estoque;
+use App\Observers\EstoqueObserver;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,7 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // Qualquer lugar do sistema que alterar a quantidade do estoque passará automaticamente por essa regra de validação antes de salvar no banco.
+        Estoque::observe(EstoqueObserver::class);
     }
 }

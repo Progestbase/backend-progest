@@ -59,6 +59,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:4',
             'cpf' => 'required|string|max:14|unique:users',
+            'tipo_vinculo' => 'required|exists:tipo_vinculo,id'
 
             // 'unidade' => 'required|exists:Setores,id'
         ]);
@@ -93,7 +94,6 @@ class AuthController extends Controller
         $user->telefone = isset($data['user']['telefone']) ? preg_replace('/\D/', '', $data['user']['telefone']) : null;
         $user->data_nascimento = $data['user']['data_nascimento'] ?? null;
         $user->cpf = preg_replace('/\D/', '', $data['user']['cpf']);
-        $user->status = $data['user']['status'];
 
         $user->tipo_vinculo = $data['user']['tipo_vinculo'] ?? null;
         $user->password = bcrypt($data['user']['password']);
@@ -155,6 +155,23 @@ class AuthController extends Controller
     public function update(Request $request)
     {
         $data = $request->user;
+
+        $validator = Validator::make($data, [
+            'name'   => 'required|string|max:255',
+            'status' => 'required|string|max:1',
+            'email'  => 'required|email|unique:users,email,' . $data['id'],
+            'cpf'    => 'required|unique:users,cpf,' . $data['id'],
+            'tipo_vinculo' => 'required|exists:tipo_vinculo,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false, 
+                'validacao' => true,
+                'erros' => $validator->errors()
+            ], 200);
+        }
+        
         $user = User::find($data['id']);
         if (!$user) {
             return response()->json(['status' => false, 'message' => 'Usuário não encontrado'], 404);

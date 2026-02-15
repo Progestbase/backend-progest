@@ -6,30 +6,19 @@ use App\Models\UnidadeMedida;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\StoreUnidadeMedidaRequest;
 
 class UnidadeMedidaController
 {
-    public function add(Request $request)
+    public function add(StoreUnidadeMedidaRequest $request)
     {
-        $data = $request->all();
-
-        $validator = Validator::make($data['unidadeMedida'] ?? [], [
-            'nome' => 'required|string|max:255',
-            'quantidade_unidade_minima' => 'required|integer|min:1'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,  
-                'validacao' => true,
-                'erros' => $validator->errors()
-            ], 422);
-        }
-
+        // O Laravel já validou. Se chegou aqui, os dados estão certos.
+        $dadosValidados = $request->validated(); 
+        
         $um = new UnidadeMedida;
-        $um->nome = mb_strtoupper($data['unidadeMedida']['nome']);
-        $um->quantidade_unidade_minima = $data['unidadeMedida']['quantidade_unidade_minima'];
-        $um->status = $data['unidadeMedida']['status'] ?? 'A';
+        $um->nome = $dadosValidados['unidadeMedida']['nome'];
+        $um->quantidade_unidade_minima = $dadosValidados['unidadeMedida']['quantidade_unidade_minima'];
+        $um->status = $dadosValidados['unidadeMedida']['status'] ?? 'A';
         $um->save();
 
         return ['status' => true, 'data' => $um];
