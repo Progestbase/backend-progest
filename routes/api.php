@@ -58,11 +58,14 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 Route::post("login", [AuthController::class, 'login']);
 Route::post("register", [AuthController::class, 'register']);
 Route::post("logout", [AuthController::class, 'logout']);
-Route::post("/user/add", [AuthController::class, 'add']);
-Route::post("/user/update", [AuthController::class, 'update']);
-Route::post('/user/list', [AuthController::class, 'listAll']);
-Route::post('/user/listData',  [AuthController::class, 'listData']);
-Route::post('/user/delete/{id}',  [AuthController::class, 'delete']);
+
+Route::prefix('user')->group(function () {
+    Route::post('/add', [UserController::class, 'add']);
+    Route::post('/update', [UserController::class, 'update']);
+    Route::post('/list', [UserController::class, 'listAll']);
+    Route::post('/listData', [UserController::class, 'listData']);
+    Route::post('/delete/{id}', [UserController::class, 'delete']);
+});
 
 Route::post('/tipoVinculo/add', [TipoVinculoController::class, 'add']);
 Route::post('/tipoVinculo/update', [TipoVinculoController::class, 'update']);
