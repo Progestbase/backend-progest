@@ -2,26 +2,11 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Contracts\Validation\Validator;
-use Illuminate\Http\Exceptions\HttpResponseException;
-class UnidadeMedidaRequest extends FormRequest
-{
-    /**
-     * Determine if the user is authorized to make this request.
-     *
-     * @return bool
-     */
-    public function authorize()
-    {
-        return true;
-    }
+use App\Http\Requests\BaseFormRequest;
 
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array
-     */
+class UnidadeMedidaRequest extends BaseFormRequest
+{
+
     public function rules()
     {
         // Pega o ID da requisição, caso seja uma edição (update)
@@ -29,19 +14,10 @@ class UnidadeMedidaRequest extends FormRequest
 
         return [
             // 'unique' verifica a tabela 'unidade_medida', coluna 'nome', e ignora o registro atual na edição
-            'unidadeMedida.nome' => 'required|string|max:255|unique:unidade_medida,nome,' . $id,
+            'unidadeMedida.nome' => 'required|string|max:100|unique:unidade_medida,nome,' . $id,
             'unidadeMedida.quantidade_unidade_minima' => 'required|integer|min:1',
-            'unidadeMedida.status' => 'nullable|in:A,I' // Opcional, valida se é A ou I
+            'unidadeMedida.status' => 'required|in:A,I' // Valida se é A ou I
         ];
-    }
-
-    protected function failedValidation(Validator $validator)
-    {
-        throw new HttpResponseException(response()->json([
-            'status' => false,
-            'validacao' => true,
-            'erros' => $validator->errors()
-        ], 200)); // Forçamos 200 para cair no "if" do frontend
     }
 
     // Opcional: Personalizar nomes dos atributos para a mensagem ficar bonita
@@ -59,6 +35,10 @@ class UnidadeMedidaRequest extends FormRequest
     {
         return [
             'unidadeMedida.nome.required' => 'O nome da unidade é obrigatório.',
+            'unidadeMedida.quantidade_unidade_minima.required' => 'A quantidade de unidades mínima é obrigatório.',   
+            'unidadeMedida.status.required' => 'O status da unidade é obrigatório.',
+
+            'unidadeMedida.nome.max' => 'O tamanho máximo do nome é de 100 caracteres.',
             'unidadeMedida.nome.unique' => 'Já existe uma unidade de medida com este nome.',
             'unidadeMedida.quantidade_unidade_minima.min' => 'A quantidade mínima deve ser pelo menos 1.',
         ];
