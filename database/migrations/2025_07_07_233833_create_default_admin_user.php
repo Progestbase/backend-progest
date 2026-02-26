@@ -37,6 +37,6 @@ class CreateDefaultAdminUser extends Migration
      */
     public function down()
     {
-        DB::table('users')->where('email', 'admin@example.com')->delete();
+        DB::table('users')->where('email', 'admin@admin.com')->delete();
     }
 }

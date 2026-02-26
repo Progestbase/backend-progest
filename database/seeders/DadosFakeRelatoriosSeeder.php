@@ -78,9 +78,25 @@ class DadosFakeRelatoriosSeeder extends Seeder
 
             // 14. Movimentações
             $this->gerarMovimentacoes();
+
+            // 15. Garantir que o admin padrão tenha acesso a tudo
+            $this->vincularAdminAosSetores();
         });
 
         $this->command->info('✅ Todos os dados fake foram gerados com sucesso!');
+    }
+
+    private function vincularAdminAosSetores()
+    {
+        $admin = User::where('email', 'admin@admin.com')->first();
+        if ($admin) {
+            $this->command->info('🛡️  Vinculando o admin@admin.com a todos os setores fakes...');
+            $syncData = [];
+            foreach ($this->setores as $setor) {
+                $syncData[$setor->id] = ['perfil' => 'almoxarife'];
+            }
+            $admin->setores()->syncWithoutDetaching($syncData);
+        }
     }
 
     private function gerarTiposVinculo()

@@ -1,0 +1,30 @@
+# Backend Progest - Laravel API
+
+## Stack
+- **Framework**: Laravel 8.75
+- **PHP**: ^7.3 | ^8.0
+- **Database**: Managed via Laravel Migrations
+- **Environment**: Docker (optional but present) or local via `php artisan serve`
+
+## Architecture & Conventions
+- **Pattern**: Standard Laravel MVC structure.
+- **Directories**:
+  - `app/`: Core logic (Models, Controllers, etc.)
+  - `database/`: Migrations, Factories, and Seeders.
+  - `routes/`: API and Web routes.
+- **Seeders**:
+  - `DatabaseSeeder.php` is the entry point.
+  - Specific seeders for: `Fornecedores`, `GrupoProduto`, `Produtos`, `Setores`, `UnidadeMedida`, `Unidades`, `DadosFakeRelatorios`.
+
+## Common Commands
+- **Reset & Seed**: `php artisan migrate:fresh --seed`
+- **Start Server**: `php artisan serve`
+- **Docker Workflow**:
+  - `make deploy`: Down, Up, Clear Cache, Migrate.
+  - `make first-deploy`: Down, Up, Migrate Fresh, Seed.
+  - `make migrate-fresh`: Reset database.
+  - `make seed`: Run seeders.
+
+## Constraints
+- Always use `--force` in production/docker environments if prompted or in shared environments.
+- Follow PSR-12 coding standards.
