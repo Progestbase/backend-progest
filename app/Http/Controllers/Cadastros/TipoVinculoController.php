@@ -2,15 +2,13 @@
 
 namespace App\Http\Controllers\Cadastros;
 
+use App\Http\Requests\TipoVinculoRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use App\Models\TipoVinculo; 
-
-use Illuminate\Support\Facades\DB;  
 
 class TipoVinculoController
 {
-    public function add(Request $request){
+    public function add(TipoVinculoRequest $request){
 
     }
 
@@ -45,7 +43,7 @@ class TipoVinculoController
 
     }
 
-    public function update(Request $request){
+    public function update(TipoVinculoRequest $request){
 
     }
 

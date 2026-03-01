@@ -30,6 +30,7 @@ class MovimentacaoController extends Controller
             }
         }
 
+        // Tarefa 1: Pendente de mover para um MovimentacaoRequest no futuro
         $validator = Validator::make($data, [
             'usuario_id' => 'required|integer|exists:users,id',
             'tipo' => 'required|in:T,D,S',
@@ -154,82 +155,80 @@ class MovimentacaoController extends Controller
             Log::info("Processando ação: $action para Movimentacao ID: $id");
 
             if ($action === 'approve') {
-                 // Preparar mapa de quantidades liberadas
-                 $quantidadesLiberadas = [];
-                 if (!empty($itens) && is_array($itens)) {
-                     foreach ($itens as $itemData) {
-                         if (isset($itemData['id']) && isset($itemData['quantidade_liberada'])) {
-                             $quantidadesLiberadas[$itemData['id']] = (int) $itemData['quantidade_liberada'];
-                         }
-                     }
-                 }
+                // Preparar mapa de quantidades liberadas
+                $quantidadesLiberadas = [];
+                if (!empty($itens) && is_array($itens)) {
+                    foreach ($itens as $itemData) {
+                        if (isset($itemData['id']) && isset($itemData['quantidade_liberada'])) {
+                            $quantidadesLiberadas[$itemData['id']] = (int) $itemData['quantidade_liberada'];
+                        }
+                    }
+                }
  
-                 // Validar estoque da origem antes de aprovar
-                 $errosEstoque = [];
-                 foreach ($mov->itens as $item) {
-                     $qtdLiberar = $quantidadesLiberadas[$item->id] ?? $item->quantidade_solicitada;
+                // Validar estoque da origem antes de aprovar
+                $errosEstoque = [];
+                foreach ($mov->itens as $item) {
+                $qtdLiberar = $quantidadesLiberadas[$item->id] ?? $item->quantidade_solicitada;
+
+                    if ($qtdLiberar <= 0) continue; // Pular itens com quantidade zero
+
+                    // Buscar estoque do produto na origem
+                    // LOCK FOR UPDATE! 
+                    // Se outro processo tentar aprovar no mesmo milissegundo, ele será forçado 
+                    // a esperar esta transação terminar antes de conseguir ler o stock.
+                    $estoqueOrigem = Estoque::where('produto_id', $item->produto_id)
+                        ->where('unidade_id', $mov->setor_origem_id)
+                        ->lockForUpdate() 
+                        ->first();
  
-                     if ($qtdLiberar <= 0) continue; // Pular itens com quantidade zero
- 
-                     // Buscar estoque do produto na origem
-                     $estoqueOrigem = Estoque::where('produto_id', $item->produto_id)
-                         ->where('unidade_id', $mov->setor_origem_id)
-                         ->first();
- 
-                     if (!$estoqueOrigem) {
-                         $nomeProduto = $item->produto?->nome ?? "ID {$item->produto_id}";
-                         $errosEstoque[] = "Produto '{$nomeProduto}' não encontrado no estoque de origem.";
-                         continue;
-                     }
- 
-                     if ($estoqueOrigem->quantidade_atual < $qtdLiberar) {
-                         $nomeProduto = $item->produto?->nome ?? "ID {$item->produto_id}";
-                         $errosEstoque[] = "Estoque insuficiente para '{$nomeProduto}'. Disponível: {$estoqueOrigem->quantidade_atual}, Solicitado: {$qtdLiberar}.";
-                     }
-                 }
- 
-                 if (!empty($errosEstoque)) {
-                     DB::rollBack();
-                     return response()->json([
-                         'status' => false,
-                         'message' => 'Estoque insuficiente para aprovar a movimentação.',
-                         'erros' => $errosEstoque
-                     ], 422);
-                 }
- 
-                 // Atualizar quantidades liberadas e transferir estoque
-                 foreach ($mov->itens as $item) {
-                     $qtdLiberar = $quantidadesLiberadas[$item->id] ?? $item->quantidade_solicitada;
- 
-                     // Atualizar quantidade_liberada no item
-                     $item->quantidade_liberada = $qtdLiberar;
-                     $item->save();
- 
-                     if ($qtdLiberar <= 0) continue;
- 
-                     // Deduzir do estoque de origem
-                     Estoque::where('produto_id', $item->produto_id)
-                         ->where('unidade_id', $mov->setor_origem_id)
-                         ->decrement('quantidade_atual', $qtdLiberar);
- 
-                     // Adicionar ao estoque de destino (criar se não existir)
-                     $estoqueDestino = Estoque::firstOrCreate(
-                         [
-                             'produto_id' => $item->produto_id,
-                             'unidade_id' => $mov->setor_destino_id
-                         ],
-                         [
-                             'quantidade_atual' => 0,
-                             'quantidade_minima' => 0,
-                             'status_disponibilidade' => 'D'
-                         ]
-                     );
- 
-                     $estoqueDestino->increment('quantidade_atual', $qtdLiberar);
-                 }
- 
-                 $mov->status_solicitacao = 'A';
-                 $mov->aprovador_usuario_id = $aprovadorId;
+                    if (!$estoqueOrigem) {
+                        $nomeProduto = $item->produto?->nome ?? "ID {$item->produto_id}";
+                        $errosEstoque[] = "Produto '{$nomeProduto}' não encontrado no estoque.";
+                        continue;
+                    }
+
+                    if ($estoqueOrigem->quantidade_atual < $qtdLiberar) {
+                        $nomeProduto = $item->produto?->nome ?? "ID {$item->produto_id}";
+                        $errosEstoque[] = "Estoque insuficiente para '{$nomeProduto}'. Disponível: {$estoqueOrigem->quantidade_atual}, Solicitado: {$qtdLiberar}.";
+                    }
+                }
+
+                if (!empty($errosEstoque)) {
+                    DB::rollBack();
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Estoque insuficiente.',
+                        'erros' => $errosEstoque
+                    ], 422);
+                }
+
+                // Atualizar quantidades liberadas e transferir estoque
+                foreach ($mov->itens as $item) {
+                    $qtdLiberar = $quantidadesLiberadas[$item->id] ?? $item->quantidade_solicitada;
+                    // Atualizar quantidade_liberada no item
+                    $item->quantidade_liberada = $qtdLiberar;
+                    $item->save();
+
+                    if ($qtdLiberar <= 0) continue;
+
+                    // Deduz do estoque de origem (A atomicidade é garantida pelo Lock acima)
+                    Estoque::where('produto_id', $item->produto_id)
+                        ->where('unidade_id', $mov->setor_origem_id)
+                        ->decrement('quantidade_atual', $qtdLiberar);
+
+                    // Cria/Lê o destino e adiciona o lock também para garantir integridade
+                    $estoqueDestinoExistente = Estoque::firstOrCreate(
+                        ['produto_id' => $item->produto_id, 'unidade_id' => $mov->setor_destino_id],
+                        ['quantidade_atual' => 0, 'quantidade_minima' => 0, 'status_disponibilidade' => 'D']
+                    );
+
+                    Estoque::where('id', $estoqueDestinoExistente->id)
+                        ->lockForUpdate()
+                        ->increment('quantidade_atual', $qtdLiberar);
+                }
+
+                $mov->status_solicitacao = 'A';
+                $mov->aprovador_usuario_id = $aprovadorId;
 
             } elseif ($action === 'reject') {
                 $mov->status_solicitacao = 'R';
@@ -243,7 +242,7 @@ class MovimentacaoController extends Controller
                 if ($mov->status_solicitacao !== 'P') {
                     Log::warning("Tentativa de cancelar pedido não pendente. Status: " . $mov->status_solicitacao);
                     DB::rollBack();
-                    return response()->json(['status' => false, 'message' => 'Só é possível cancelar solicitações pendentes'], 422);
+                    return response()->json(['status' => false, 'message' => 'Apenas pendentes podem ser canceladas.'], 422);
                 }
                 $mov->status_solicitacao = 'X'; // X = Cancelado pelo solicitante
                 Log::info("Status alterado para X");
@@ -255,25 +254,12 @@ class MovimentacaoController extends Controller
             DB::commit();
             Log::info("Transação commitada.");
 
-            // Recarregar apenas relacionamentos essenciais para cancelamento
-            try {
-                $mov->load(['itens.produto']);
-                Log::info("Relacionamentos carregados.");
-            } catch (\Exception $e) {
-                Log::error("Erro ao carregar relacionamentos: " . $e->getMessage());
-                // Não falha a requisição se o load falhar, pois a ação principal já foi feita
-            }
-
             return response()->json(['status' => true, 'data' => $mov]);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erro ao processar movimentação FINAL: ' . $e->getMessage(), [
-                'exception' => $e,
-                'trace' => $e->getTraceAsString(),
-                'movimentacao_id' => $id,
-                'action' => $action ?? null
-            ]);
-            return response()->json(['status' => false, 'message' => 'Erro ao processar movimentação: ' . $e->getMessage()], 500);
+            Log::error('Erro ao processar: ' . $e->getMessage());
+            return response()->json(['status' => false, 'message' => 'Erro interno.'], 500);
         }
     }
 

@@ -2,14 +2,47 @@
 
 namespace App\Http\Controllers\Cadastros;
 
+use App\Http\Requests\FornecedorRequest;
 use App\Models\Fornecedor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class FornecedorController
 {
+    /**
+     * Criar novo fornecedor
+     */
+    public function add(FornecedorRequest $request)
+    {
+        try {
+            $data = $request->validated()['fornecedor'] ?? $request->all()['fornecedor'];
+
+            // Criar fornecedor
+            $fornecedor = new Fornecedor();
+            $fornecedor->tipo_pessoa = $data['tipo_pessoa'];
+            $fornecedor->razao_social_nome = trim($data['razao_social_nome']);
+            $fornecedor->cpf = $data['tipo_pessoa'] === 'F' ? $data['cpf'] : null;
+            $fornecedor->cnpj = $data['tipo_pessoa'] === 'J' ? $data['cnpj'] : null;
+            $fornecedor->status = $data['status'] ?? 'A';
+
+            $fornecedor->save();
+
+            return response()->json([
+                'status' => true,
+                'data' => $fornecedor,
+                'message' => 'Fornecedor cadastrado com sucesso'
+            ], 201);
+        } catch (\Throwable $e) { // Trocamos \Exception por \Throwable para capturar até erros do PHP 8
+            Log::error('Erro ao salvar fornecedor: ' . $e->getMessage());
+            
+            // Vai mandar o erro real do Banco de Dados direto para o alerta do seu Vue.js!
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro Técnico: ' . $e->getMessage() . ' (Linha ' . $e->getLine() . ')'
+            ], 500);
+        }
+    }
+
     /**
      * Listar todos os fornecedores
      */
@@ -88,90 +121,13 @@ class FornecedorController
     }
 
     /**
-     * Criar novo fornecedor
-     */
-    public function add(Request $request)
-    {
-        try {
-            $data = $request->all();
-            $fornecedorData = $data['fornecedor'] ?? $data;
-
-            // Validações personalizadas
-            $rules = [
-                'tipo_pessoa' => 'required|in:F,J',
-                'razao_social_nome' => 'required|string|max:255',
-                'status' => 'in:A,I'
-            ];
-
-            // Validação condicional para CPF ou CNPJ
-            if ($fornecedorData['tipo_pessoa'] === 'F') {
-                $rules['cpf'] = 'required|string|size:11|unique:fornecedores,cpf';
-                $rules['cnpj'] = 'nullable';
-            } else {
-                $rules['cnpj'] = 'required|string|size:14|unique:fornecedores,cnpj';
-                $rules['cpf'] = 'nullable';
-            }
-
-            $validator = Validator::make($fornecedorData, $rules, [
-                'tipo_pessoa.required' => 'O tipo de pessoa é obrigatório',
-                'tipo_pessoa.in' => 'Tipo de pessoa deve ser F (Física) ou J (Jurídica)',
-                'razao_social_nome.required' => 'A razão social/nome é obrigatória',
-                'cpf.required' => 'CPF é obrigatório para pessoa física',
-                'cpf.size' => 'CPF deve ter exatamente 11 dígitos',
-                'cpf.unique' => 'Este CPF já está cadastrado',
-                'cnpj.required' => 'CNPJ é obrigatório para pessoa jurídica',
-                'cnpj.size' => 'CNPJ deve ter exatamente 14 dígitos',
-                'cnpj.unique' => 'Este CNPJ já está cadastrado'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'validacao' => true,
-                    'erros' => $validator->errors()
-                ], 422);
-            }
-
-            // Criar fornecedor
-            $fornecedor = new Fornecedor();
-            $fornecedor->tipo_pessoa = $fornecedorData['tipo_pessoa'];
-            $fornecedor->razao_social_nome = mb_strtoupper(trim($fornecedorData['razao_social_nome']));
-            $fornecedor->cpf = $fornecedorData['tipo_pessoa'] === 'F' ? $fornecedorData['cpf'] : null;
-            $fornecedor->cnpj = $fornecedorData['tipo_pessoa'] === 'J' ? $fornecedorData['cnpj'] : null;
-            $fornecedor->status = $fornecedorData['status'] ?? 'A';
-
-            $fornecedor->save();
-
-            return response()->json([
-                'status' => true,
-                'data' => $fornecedor,
-                'message' => 'Fornecedor cadastrado com sucesso'
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('Erro ao criar fornecedor: ' . $e->getMessage());
-            return response()->json([
-                'status' => false,
-                'message' => 'Erro interno do servidor'
-            ], 500);
-        }
-    }
-
-    /**
      * Atualizar fornecedor existente
      */
-    public function update(Request $request)
+    public function update(FornecedorRequest $request)
     {
         try {
-            $data = $request->all();
-            $fornecedorData = $data['fornecedor'] ?? $data;
-            $id = $fornecedorData['id'] ?? null;
-
-            if (!$id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'ID do fornecedor é obrigatório'
-                ], 400);
-            }
+            $data = $request->validated()['fornecedor'] ?? $request->all()['fornecedor'];
+            $id = $data['id'] ?? null;
 
             // Verificar se o fornecedor existe
             $fornecedor = Fornecedor::find($id);
@@ -182,49 +138,12 @@ class FornecedorController
                 ], 404);
             }
 
-            // Validações
-            $rules = [
-                'tipo_pessoa' => 'required|in:F,J',
-                'razao_social_nome' => 'required|string|max:255',
-                'status' => 'in:A,I'
-            ];
-
-            // Validação condicional para CPF ou CNPJ
-            if ($fornecedorData['tipo_pessoa'] === 'F') {
-                $rules['cpf'] = 'required|string|size:11|unique:fornecedores,cpf,' . $id;
-                $rules['cnpj'] = 'nullable';
-            } else {
-                $rules['cnpj'] = 'required|string|size:14|unique:fornecedores,cnpj,' . $id;
-                $rules['cpf'] = 'nullable';
-            }
-
-            $validator = Validator::make($fornecedorData, $rules, [
-                'tipo_pessoa.required' => 'O tipo de pessoa é obrigatório',
-                'tipo_pessoa.in' => 'Tipo de pessoa deve ser F (Física) ou J (Jurídica)',
-                'razao_social_nome.required' => 'A razão social/nome é obrigatória',
-                'cpf.required' => 'CPF é obrigatório para pessoa física',
-                'cpf.size' => 'CPF deve ter exatamente 11 dígitos',
-                'cpf.unique' => 'Este CPF já está cadastrado',
-                'cnpj.required' => 'CNPJ é obrigatório para pessoa jurídica',
-                'cnpj.size' => 'CNPJ deve ter exatamente 14 dígitos',
-                'cnpj.unique' => 'Este CNPJ já está cadastrado'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'validacao' => true,
-                    'erros' => $validator->errors()
-                ], 422);
-            }
-
             // Atualizar fornecedor
-            $fornecedor->tipo_pessoa = $fornecedorData['tipo_pessoa'];
-            $fornecedor->razao_social_nome = mb_strtoupper(trim($fornecedorData['razao_social_nome']));
-            $fornecedor->cpf = $fornecedorData['tipo_pessoa'] === 'F' ? $fornecedorData['cpf'] : null;
-            $fornecedor->cnpj = $fornecedorData['tipo_pessoa'] === 'J' ? $fornecedorData['cnpj'] : null;
-            $fornecedor->status = $fornecedorData['status'] ?? 'A';
-
+            $fornecedor->tipo_pessoa = $data['tipo_pessoa'];
+            $fornecedor->razao_social_nome = trim($data['razao_social_nome']);
+            $fornecedor->cpf = $data['tipo_pessoa'] === 'F' ? $data['cpf'] : null;
+            $fornecedor->cnpj = $data['tipo_pessoa'] === 'J' ? $data['cnpj'] : null;
+            $fornecedor->status = $data['status'] ?? $fornecedor->status;
             $fornecedor->save();
 
             return response()->json([
@@ -232,11 +151,13 @@ class FornecedorController
                 'data' => $fornecedor,
                 'message' => 'Fornecedor atualizado com sucesso'
             ]);
-        } catch (\Exception $e) {
-            Log::error('Erro ao atualizar fornecedor: ' . $e->getMessage());
+        } catch (\Throwable $e) { // Trocamos \Exception por \Throwable para capturar até erros do PHP 8
+            Log::error('Erro ao salvar fornecedor: ' . $e->getMessage());
+            
+            // Vai mandar o erro real do Banco de Dados direto para o alerta do seu Vue.js!
             return response()->json([
                 'status' => false,
-                'message' => 'Erro interno do servidor'
+                'message' => 'Erro Técnico: ' . $e->getMessage() . ' (Linha ' . $e->getLine() . ')'
             ], 500);
         }
     }
