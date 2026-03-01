@@ -4,11 +4,38 @@ namespace App\Http\Controllers\Cadastros;
 
 use App\Models\Unidade;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\UnidadeRequest;
 use Illuminate\Support\Facades\Log;
 
 class UnidadeController
 {
+    /**
+     * Criar nova unidade
+     */
+    public function add(UnidadeRequest $request)
+    {
+        try {
+            $data = $request->validated();
+
+            $unidade = Unidade::create([
+                'nome' => mb_strtoupper($data['nome']),
+                'status' => $data['status'] ?? 'A'
+            ]);
+
+            return response()->json([
+                'status' => true,
+                'data' => $unidade,
+                'message' => 'Unidade criada com sucesso'
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('Erro ao criar unidade: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro interno ao salvar unidade: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Listar todas as unidades
      */
@@ -42,7 +69,7 @@ class UnidadeController
                 'status' => true,
                 'data' => $unidades
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Erro ao listar unidades: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
@@ -57,8 +84,7 @@ class UnidadeController
     public function listData(Request $request)
     {
         try {
-            $data = $request->all();
-            $id = $data['id'];
+            $id = $request->input('id');
 
             if (!$id) {
                 return response()->json([
@@ -80,48 +106,8 @@ class UnidadeController
                 'status' => true,
                 'data' => $unidade
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Erro ao buscar unidade: ' . $e->getMessage());
-            return response()->json([
-                'status' => false,
-                'message' => 'Erro interno do servidor'
-            ], 500);
-        }
-    }
-
-    /**
-     * Criar nova unidade
-     */
-    public function add(Request $request)
-    {
-        try {
-            $data = $request->all();
-
-            $validator = Validator::make($data, [
-                'nome' => 'required|string|max:255',
-                'status' => 'sometimes|in:A,I'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Erro de validação',
-                    'errors' => $validator->errors()
-                ], 400);
-            }
-
-            $unidade = Unidade::create([
-                'nome' => $data['nome'],
-                'status' => $data['status'] ?? 'A'
-            ]);
-
-            return response()->json([
-                'status' => true,
-                'data' => $unidade,
-                'message' => 'Unidade criada com sucesso'
-            ], 201);
-        } catch (\Exception $e) {
-            Log::error('Erro ao criar unidade: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
                 'message' => 'Erro interno do servidor'
@@ -132,24 +118,10 @@ class UnidadeController
     /**
      * Atualizar unidade existente
      */
-    public function update(Request $request)
+    public function update(UnidadeRequest $request)
     {
         try {
-            $data = $request->all();
-
-            $validator = Validator::make($data, [
-                'id' => 'required|exists:unidades,id',
-                'nome' => 'required|string|max:255',
-                'status' => 'sometimes|in:A,I'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Erro de validação',
-                    'errors' => $validator->errors()
-                ], 400);
-            }
+            $data = $request->validated();
 
             $unidade = Unidade::find($data['id']);
 
@@ -161,7 +133,7 @@ class UnidadeController
             }
 
             $unidade->update([
-                'nome' => $data['nome'],
+                'nome' => mb_strtoupper($data['nome']),
                 'status' => $data['status'] ?? $unidade->status
             ]);
 
@@ -170,11 +142,11 @@ class UnidadeController
                 'data' => $unidade,
                 'message' => 'Unidade atualizada com sucesso'
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Erro ao atualizar unidade: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
-                'message' => 'Erro interno do servidor'
+                'message' => 'Erro interno ao atualizar unidade: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -194,12 +166,14 @@ class UnidadeController
                 ], 404);
             }
 
-            // Verificar se há setores vinculados
-            if ($unidade->setores()->count() > 0) {
+            // Verificar se há setores vinculados e retornar 422 para o Interceptor
+            $setoresCount = $unidade->setores()->count();
+            if ($setoresCount > 0) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Não é possível deletar unidade com setores vinculados'
-                ], 400);
+                    'message' => 'Não é possível deletar esta unidade pois possui setores vinculados.',
+                    'references' => ['setores (' . $setoresCount . ')']
+                ], 422);
             }
 
             $unidade->delete();
@@ -208,7 +182,7 @@ class UnidadeController
                 'status' => true,
                 'message' => 'Unidade deletada com sucesso'
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Erro ao deletar unidade: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
@@ -223,16 +197,16 @@ class UnidadeController
     public function toggleStatus(Request $request)
     {
         try {
-            $data = $request->all();
+            $id = $request->input('id');
 
-            if (!isset($data['id'])) {
+            if (!$id) {
                 return response()->json([
                     'status' => false,
                     'message' => 'ID da unidade é obrigatório'
                 ], 400);
             }
 
-            $unidade = Unidade::find($data['id']);
+            $unidade = Unidade::find($id);
 
             if (!$unidade) {
                 return response()->json([
@@ -249,7 +223,7 @@ class UnidadeController
                 'data' => $unidade,
                 'message' => 'Status alterado com sucesso'
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Erro ao alternar status da unidade: ' . $e->getMessage());
             return response()->json([
                 'status' => false,

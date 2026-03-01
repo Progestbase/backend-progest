@@ -2,38 +2,30 @@
 
 namespace App\Http\Controllers\Cadastros;
 
+use App\Http\Requests\GrupoProdutoRequest;
 use Illuminate\Http\Request;
 use App\Models\GrupoProduto;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class GrupoProdutoController
 {
-    public function add(Request $request)
+    public function add(GrupoProdutoRequest $request)
     {
-        $data = $request->all();
+        try {
+            $data = $request->validated();
 
-        $validator = Validator::make($data['grupoProduto'], [
-            'nome' => 'required|string|max:255',
-            'status' => 'required|string|max:1|in:A,I',
-            'tipo' => 'required|string|in:Medicamento,Material',
-        ]);
+            $grupoProduto = new GrupoProduto;
+            $grupoProduto->nome = $data['grupoProduto']['nome'];
+            $grupoProduto->status = $data['grupoProduto']['status'] ?? 'A';
+            $grupoProduto->tipo = $data['grupoProduto']['tipo'] ?? 'Material';
+            $grupoProduto->save();
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'validacao' => true,
-                'erros' => $validator->errors()
-            ], 422);
+            return response()->json(['status' => true, 'data' => $grupoProduto], 201);
+        } catch (\Throwable $e) {
+            Log::error('Erro ao adicionar Grupo de Produto: ' . $e->getMessage());
+            return response()->json(['status' => false, 'message' => 'Erro interno ao salvar. ('.$e->getMessage().')'], 500);
         }
-
-        $grupoProduto = new GrupoProduto;
-        $grupoProduto->nome = mb_strtoupper($data['grupoProduto']['nome']);
-        $grupoProduto->status = $data['grupoProduto']['status'] ?? 'A';
-        $grupoProduto->tipo = $data['grupoProduto']['tipo'] ?? 'Material';
-        $grupoProduto->save();
-
-        return ['status' => true, 'data' => $grupoProduto];
     }
 
     public function listAll(Request $request)
@@ -49,60 +41,17 @@ class GrupoProdutoController
             }
         }
 
-        if (!isset($data['paginate'])) {
-            $grupoProdutos = $grupoProdutoQuery
-                ->select('id', 'nome', 'status', 'tipo', 'created_at', 'updated_at')
-                ->orderBy('nome')
-                ->get();
-        } else {
-            $grupoProdutos = $grupoProdutoQuery
-                ->select('id', 'nome', 'status', 'tipo', 'created_at', 'updated_at')
-                ->orderBy('nome')
-                ->get();
-        }
+        $grupoProdutos = $grupoProdutoQuery
+            ->select('id', 'nome', 'status', 'tipo', 'created_at', 'updated_at')
+            ->orderBy('nome')
+            ->get();
 
-        return ['status' => true, 'data' => $grupoProdutos];
-    }
-
-    public function update(Request $request)
-    {
-        $data = $request->all();
-
-        $validator = Validator::make($data['grupoProduto'], [
-            'id' => 'required|integer|exists:grupo_produto,id',
-            'nome' => 'required|string|max:255',
-            'status' => 'required|string|max:1|in:A,I',
-            'tipo' => 'required|string|in:Medicamento,Material',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'validacao' => true,
-                'erros' => $validator->errors()
-            ], 422);
-        }
-
-        $grupoProduto = GrupoProduto::find($data['grupoProduto']['id']);
-        if (!$grupoProduto) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Grupo de produto não encontrado.'
-            ], 404);
-        }
-
-        $grupoProduto->nome = mb_strtoupper($data['grupoProduto']['nome']);
-        $grupoProduto->status = $data['grupoProduto']['status'];
-        $grupoProduto->tipo = $data['grupoProduto']['tipo'];
-        $grupoProduto->save();
-
-        return ['status' => true, 'data' => $grupoProduto];
+        return response()->json(['status' => true, 'data' => $grupoProdutos]);
     }
 
     public function listData(Request $request)
     {
-        $data = $request->all();
-        $dataID = $data['id'];
+        $dataID = $request->input('id');
 
         DB::enableQueryLog();
 
@@ -115,7 +64,29 @@ class GrupoProdutoController
             ], 404);
         }
 
-        return ['status' => true, 'data' => $grupoProduto, 'query' => DB::getQueryLog()];
+        return response()->json(['status' => true, 'data' => $grupoProduto]);
+    }
+
+    public function update(GrupoProdutoRequest $request)
+    {
+        try {
+            $data = $request->validated();
+
+            $grupoProduto = GrupoProduto::find($data['grupoProduto']['id']);
+            if (!$grupoProduto) {
+                return response()->json(['status' => false, 'message' => 'Grupo de produto não encontrado.'], 404);
+            }
+
+            $grupoProduto->nome = $data['grupoProduto']['nome'];
+            $grupoProduto->status = $data['grupoProduto']['status'];
+            $grupoProduto->tipo = $data['grupoProduto']['tipo'];
+            $grupoProduto->save();
+
+            return response()->json(['status' => true, 'data' => $grupoProduto]);
+        } catch (\Throwable $e) {
+            Log::error('Erro ao atualizar Grupo de Produto: ' . $e->getMessage());
+            return response()->json(['status' => false, 'message' => 'Erro interno ao atualizar.'], 500);
+        }
     }
 
     public function delete($id)
