@@ -6,13 +6,14 @@ use App\Models\UnidadeMedida;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use App\Http\Requests\StoreUnidadeMedidaRequest;
+use App\Http\Requests\UnidadeMedidaRequest;
 
 class UnidadeMedidaController
 {
-    public function add(StoreUnidadeMedidaRequest $request)
+    public function add(UnidadeMedidaRequest $request)
     {
         // O Laravel já validou. Se chegou aqui, os dados estão certos.
+        // validated() devolve apenas os campos que passaram pelas regras que você definiu no método rules() do seu FormRequest.
         $dadosValidados = $request->validated(); 
         
         $um = new UnidadeMedida;
@@ -24,32 +25,18 @@ class UnidadeMedidaController
         return ['status' => true, 'data' => $um];
     }
 
-    public function update(Request $request)
+    public function update(UnidadeMedidaRequest $request)
     {
-        $data = $request->all();
+        $dadosValidados = $request->validated();
 
-        $validator = Validator::make($data['unidadeMedida'] ?? [], [
-            'id' => 'required|exists:unidade_medida,id',
-            'nome' => 'required|string|max:255',
-            'quantidade_unidade_minima' => 'required|integer|min:1'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'validacao' => true,
-                'erros' => $validator->errors()
-            ], 422);
-        }
-
-        $um = UnidadeMedida::find($data['unidadeMedida']['id']);
+        $um = UnidadeMedida::find($dadosValidados['unidadeMedida']['id']);
         if (!$um) {
             return response()->json(['status' => false, 'message' => 'Unidade de medida não encontrada.'], 404);
         }
 
-        $um->nome = mb_strtoupper($data['unidadeMedida']['nome']);
-        $um->quantidade_unidade_minima = $data['unidadeMedida']['quantidade_unidade_minima'];
-        $um->status = $data['unidadeMedida']['status'] ?? $um->status;
+        $um->nome = $dadosValidados['unidadeMedida']['nome'];
+        $um->quantidade_unidade_minima = $dadosValidados['unidadeMedida']['quantidade_unidade_minima'];
+        $um->status = $dadosValidados['unidadeMedida']['status'] ?? $um->status;
         $um->save();
 
         return ['status' => true, 'data' => $um];

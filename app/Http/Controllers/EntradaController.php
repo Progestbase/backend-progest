@@ -101,26 +101,17 @@ class EntradaController extends Controller
                         'data_fabricacao' => $item['data_fabricacao'] ?? null,
                     ]);
 
-                    // Atualizar ou criar registro de estoque geral
-                    $estoque = Estoque::firstOrCreate(
-                        [
-                            'produto_id' => $produto->id,
-                            'unidade_id' => $setor->id,
-                        ],
-                        [
-                            'quantidade_atual' => 0,
-                            'quantidade_minima' => 0,
-                            'status_disponibilidade' => 'D',
-                        ]
+                    // Evitando Lost Update na Entrada
+                    $estoqueBase = Estoque::firstOrCreate(
+                        ['produto_id' => $produto->id, 'unidade_id' => $setor->id],
+                        ['quantidade_atual' => 0, 'quantidade_minima' => 0, 'status_disponibilidade' => 'D']
                     );
 
-                    $estoque->quantidade_atual += $itemEntrada->quantidade;
-
-                    if ($estoque->quantidade_atual > 0) {
-                        $estoque->status_disponibilidade = 'D';
-                    }
-
-                    $estoque->save();
+                    // Tranca a linha para ninguém ler enquanto somamos
+                    $estoqueTravado = Estoque::where('id', $estoqueBase->id)->lockForUpdate()->first();
+                    $estoqueTravado->quantidade_atual += $itemEntrada->quantidade;
+                    $estoqueTravado->status_disponibilidade = 'D';
+                    $estoqueTravado->save();    
 
                     // Atualizar ou criar registro de estoque por lote
                     $estoqueLote = EstoqueLote::firstOrCreate(
