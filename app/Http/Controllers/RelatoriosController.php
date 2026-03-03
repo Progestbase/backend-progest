@@ -537,4 +537,234 @@ class RelatoriosController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Relatório de Entradas por Data (Agregado por Produto)
+     * POST /api/relatorios/entradas-por-data/list
+     * 
+     * Retorna lista consolidada de entradas agrupadas por data e produto.
+     * Calcula a quantidade total de cada produto que entrou em cada dia,
+     * somando todas as entradas de todos os fornecedores.
+     * 
+     * Exemplo: Se entraram 100 dipironas do Fornecedor A e 50 do Fornecedor B no mesmo dia,
+     * o relatório mostrará 150 dipironas no total.
+     * 
+     * Filtros opcionais:
+     * - Data inicial/final (se não informado, usa data atual)
+     * - Setor (unidade que recebeu)
+     * - Fornecedor (para filtrar por fornecedor específico)
+     * - Produto (para filtrar produto específico)
+     */
+    public function listEntradasPorData(Request $request)
+    {
+        try {
+            $data = $request->all();
+            
+            // Validação dos filtros
+            $validator = Validator::make($data, [
+                'filters.date_from' => 'nullable|date',
+                'filters.date_to' => 'nullable|date|after_or_equal:filters.date_from',
+                'filters.setor_id' => 'nullable|exists:setores,id',
+                'filters.fornecedor_id' => 'nullable|exists:fornecedores,id',
+                'filters.produto_id' => 'nullable|exists:produtos,id',
+                'per_page' => 'nullable|integer|min:1|max:500',
+                'page' => 'nullable|integer|min:1',
+            ], [
+                'filters.date_to.after_or_equal' => 'A data final deve ser posterior ou igual à data inicial.',
+                'filters.setor_id.exists' => 'Setor não encontrado.',
+                'filters.fornecedor_id.exists' => 'Fornecedor não encontrado.',
+                'filters.produto_id.exists' => 'Produto não encontrado.',
+                'per_page.integer' => 'Itens por página deve ser um número inteiro.',
+                'per_page.min' => 'Itens por página deve ser ao menos 1.',
+                'per_page.max' => 'Itens por página não pode exceder 500.',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'validacao' => true,
+                    'erros' => $validator->errors()
+                ], 422);
+            }
+
+            $filters = $data['filters'] ?? [];
+            
+            // Se não informar período, usa data atual
+            $dateFrom = $filters['date_from'] ?? date('Y-m-d');
+            $dateTo = $filters['date_to'] ?? $dateFrom;
+
+            // Query agregada: agrupa por data e produto, soma quantidades
+            $query = DB::table('itens_entrada as ie')
+                ->join('entrada as e', 'ie.entrada_id', '=', 'e.id')
+                ->join('produtos as p', 'ie.produto_id', '=', 'p.id')
+                ->join('unidade_medida as um', 'p.unidade_medida_id', '=', 'um.id')
+                ->join('grupo_produto as gp', 'p.grupo_produto_id', '=', 'gp.id')
+                ->select(
+                    DB::raw('DATE(e.created_at) as data'),
+                    'p.id as produto_id',
+                    'p.nome as produto_nome',
+                    'p.codigo_simpras',
+                    'p.codigo_barras',
+                    'um.nome as unidade_medida',
+                    'gp.nome as grupo_produto',
+                    'gp.tipo as tipo_produto',
+                    DB::raw('SUM(ie.quantidade) as quantidade_total'),
+                    DB::raw('COUNT(DISTINCT e.id) as total_entradas'),
+                    DB::raw('COUNT(DISTINCT e.fornecedor_id) as total_fornecedores')
+                )
+                ->whereDate('e.created_at', '>=', $dateFrom)
+                ->whereDate('e.created_at', '<=', $dateTo);
+
+            // Aplicar filtros opcionais
+            if (!empty($filters['setor_id'])) {
+                $query->where('e.setor_id', $filters['setor_id']);
+            }
+
+            if (!empty($filters['fornecedor_id'])) {
+                $query->where('e.fornecedor_id', $filters['fornecedor_id']);
+            }
+
+            if (!empty($filters['produto_id'])) {
+                $query->where('p.id', $filters['produto_id']);
+            }
+
+            // Agrupar por data e produto
+            $query->groupBy(
+                DB::raw('DATE(e.created_at)'),
+                'p.id',
+                'p.nome',
+                'p.codigo_simpras',
+                'p.codigo_barras',
+                'um.nome',
+                'gp.nome',
+                'gp.tipo'
+            );
+
+            // Paginação
+            $perPage = $data['per_page'] ?? 50;
+            $page = $data['page'] ?? 1;
+            
+            // Clonar query para count (sem ORDER BY que causa erro)
+            $countQuery = clone $query;
+            $total = $countQuery->get()->count();
+            
+            // Adicionar ordenação apenas na query de resultados
+            $results = $query
+                ->orderByDesc(DB::raw('DATE(e.created_at)'))
+                ->orderByDesc(DB::raw('SUM(ie.quantidade)'))
+                ->offset(($page - 1) * $perPage)
+                ->limit($perPage)
+                ->get();
+
+            // Agrupar resultados por data
+            $groupedByDate = [];
+            foreach ($results as $item) {
+                $data = $item->data;
+                
+                if (!isset($groupedByDate[$data])) {
+                    $groupedByDate[$data] = [
+                        'data' => $data,
+                        'produtos' => [],
+                        'total_produtos' => 0,
+                        'quantidade_total_dia' => 0
+                    ];
+                }
+                
+                // Buscar entradas detalhadas (fornecedor, nota fiscal, setor) deste produto nesta data
+                $entradasDetalhadas = DB::table('itens_entrada as ie')
+                    ->join('entrada as e', 'ie.entrada_id', '=', 'e.id')
+                    ->join('fornecedores as f', 'e.fornecedor_id', '=', 'f.id')
+                    ->join('setores as s', 'e.setor_id', '=', 's.id')
+                    ->select(
+                        'e.id as entrada_id',
+                        'e.nota_fiscal',
+                        'f.id as fornecedor_id',
+                        'f.razao_social_nome as fornecedor_nome',
+                        'f.cnpj as fornecedor_cnpj',
+                        's.id as setor_id',
+                        's.nome as setor_nome',
+                        'ie.quantidade',
+                        'ie.lote',
+                        'ie.data_vencimento',
+                        'ie.data_fabricacao',
+                        'e.created_at'
+                    )
+                    ->where('ie.produto_id', $item->produto_id)
+                    ->whereDate('e.created_at', $data)
+                    ->orderBy('e.created_at', 'desc')
+                    ->get();
+                
+                $groupedByDate[$data]['produtos'][] = [
+                    'produto' => [
+                        'id' => $item->produto_id,
+                        'nome' => $item->produto_nome,
+                        'codigo_simpras' => $item->codigo_simpras,
+                        'codigo_barras' => $item->codigo_barras,
+                        'unidade_medida' => $item->unidade_medida,
+                        'grupo_produto' => $item->grupo_produto,
+                        'tipo' => $item->tipo_produto,
+                    ],
+                    'quantidade_total' => (int) $item->quantidade_total,
+                    'total_entradas' => (int) $item->total_entradas,
+                    'total_fornecedores' => (int) $item->total_fornecedores,
+                    'entradas' => $entradasDetalhadas->map(function($entrada) {
+                        return [
+                            'entrada_id' => $entrada->entrada_id,
+                            'nota_fiscal' => $entrada->nota_fiscal,
+                            'quantidade' => (int) $entrada->quantidade,
+                            'lote' => $entrada->lote,
+                            'data_vencimento' => $entrada->data_vencimento,
+                            'data_fabricacao' => $entrada->data_fabricacao,
+                            'fornecedor' => [
+                                'id' => $entrada->fornecedor_id,
+                                'nome' => $entrada->fornecedor_nome,
+                                'cnpj' => $entrada->fornecedor_cnpj
+                            ],
+                            'setor' => [
+                                'id' => $entrada->setor_id,
+                                'nome' => $entrada->setor_nome
+                            ],
+                            'created_at' => $entrada->created_at
+                        ];
+                    })
+                ];
+                
+                $groupedByDate[$data]['total_produtos']++;
+                $groupedByDate[$data]['quantidade_total_dia'] += (int) $item->quantidade_total;
+            }
+            
+            // Converter para array indexado e ordenar por data
+            $resultsWithDetails = array_values($groupedByDate);
+
+            $paginationData = [
+                'current_page' => $page,
+                'data' => $resultsWithDetails,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => ceil($total / $perPage),
+                'from' => ($page - 1) * $perPage + 1,
+                'to' => min($page * $perPage, $total),
+            ];
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Relatório de entradas por data recuperado com sucesso',
+                'data' => $paginationData,
+                'periodo' => [
+                    'data_inicial' => $dateFrom,
+                    'data_final' => $dateTo
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao gerar relatório de entradas por data: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao gerar relatório de entradas por data'
+            ], 500);
+        }
+    }
 }
