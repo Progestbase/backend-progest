@@ -175,4 +175,5 @@ Route::post('/estoqueLote/updateQuantidade', [EstoqueLoteController::class, 'upd
 Route::post('/relatorios/entradas/list', [RelatoriosController::class, 'listEntradasReport']);
 Route::post('/relatorios/movimentacoes/list', [RelatoriosController::class, 'listMovimentacoesReport']);
 Route::post('/relatorios/saidas/list', [RelatoriosController::class, 'listSaidasReport']);
+Route::post('/relatorios/saidas-por-data/list', [RelatoriosController::class, 'listSaidasPorData']);
 
