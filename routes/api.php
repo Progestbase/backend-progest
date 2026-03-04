@@ -147,6 +147,7 @@ Route::match(['get', 'post'], '/movimentacao/listByUnidade', [MovimentacaoContro
 Route::get('/movimentacao/{id}', [MovimentacaoController::class, 'show']);
 Route::post('/movimentacao/{id}/process', [MovimentacaoController::class, 'process']);
 Route::post('/movimentacao/{id}/delete', [MovimentacaoController::class, 'destroy']);
+Route::post('/movimentacoes/{id}/status', [MovimentacaoController::class, 'updateStatus']);
 
 // Rotas antigas do estoque (para manter compatibilidade)
 Route::post('/estoque/add', [CadastrosEstoqueController::class, 'add']);

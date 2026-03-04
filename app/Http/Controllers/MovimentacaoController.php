@@ -135,12 +135,23 @@ class MovimentacaoController extends Controller
         $mov = Movimentacao::with('itens.produto')->find($id);
         if (!$mov) return response()->json(['status' => false, 'message' => 'Movimentação não encontrada'], 404);
 
-        $action = $request->input('action'); // 'approve','reject','submit','cancel'
-        $aprovadorId = $request->input('aprovador_usuario_id');
+        $action = $request->input('action');
+        if (!$action && $request->has('status')) {
+            $statusMap = [
+                'A' => 'approve',
+                'R' => 'reject',
+                'P' => 'submit',
+                'X' => 'cancel'
+            ];
+            $status = $request->input('status');
+            $action = $statusMap[$status] ?? null;
+        }
+
+        $aprovadorId = $request->input('aprovador_usuario_id') ?? $request->input('usuario_id');
         $itens = $request->input('itens'); // array de itens com quantidade_liberada ajustada
 
         if (!in_array($action, ['approve', 'reject', 'submit', 'cancel'])) {
-            return response()->json(['status' => false, 'message' => 'action inválida'], 422);
+            return response()->json(['status' => false, 'message' => "action inválida: '$action'"], 422);
         }
 
         try {
@@ -261,6 +272,37 @@ class MovimentacaoController extends Controller
             Log::error('Erro ao processar: ' . $e->getMessage());
             return response()->json(['status' => false, 'message' => 'Erro interno.'], 500);
         }
+    }
+
+    // Atualizar status (compatibilidade com frontend)
+    public function updateStatus(Request $request, $id)
+    {
+        Log::info("updateStatus chamado para movimentação ID: $id", [
+            'payload' => $request->all()
+        ]);
+
+        $statusMap = [
+            'A' => 'approve',  // Aprovado
+            'R' => 'reject',   // Reprovado
+            'P' => 'submit',   // Pendente (enviar rascunho)
+            'X' => 'cancel'    // Cancelado
+        ];
+
+        $status = $request->input('status');
+        if (!isset($statusMap[$status])) {
+            Log::warning("Status inválido recebido: $status");
+            return response()->json([
+                'status' => false,
+                'message' => "Status '$status' inválido. Use: A (Aprovar), R (Reprovar), P (Pendente), X (Cancelar)"
+            ], 422);
+        }
+
+        $request->merge([
+            'action' => $statusMap[$status],
+            'aprovador_usuario_id' => $request->input('aprovador_usuario_id') ?? $request->input('usuario_id')
+        ]);
+
+        return $this->process($request, $id);
     }
 
     // Deletar apenas rascunhos
