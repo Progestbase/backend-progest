@@ -42,7 +42,7 @@ services:
             - "traefik.http.routers.progest-api.rule=Host(`hgvcprogest-api.davidjunior.dev.br`)"
             - "traefik.http.routers.progest-api.entrypoints=web,websecure"
             - "traefik.http.routers.progest-api.tls=true"
-            - "traefik.http.routers.progest-api.tls.certresolver=letsencrypt"
+            - "traefik.http.routers.progest-api.tls.certresolver=myresolver"
             # Middleware CORS
             - "traefik.http.routers.progest-api.middlewares=progest-cors"
             - "traefik.http.middlewares.progest-cors.headers.accesscontrolallowmethods=GET,POST,PUT,PATCH,DELETE,OPTIONS"
