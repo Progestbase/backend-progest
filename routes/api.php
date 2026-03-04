@@ -177,4 +177,5 @@ Route::post('/relatorios/movimentacoes/list', [RelatoriosController::class, 'lis
 Route::post('/relatorios/saidas/list', [RelatoriosController::class, 'listSaidasReport']);
 Route::post('/relatorios/saidas-por-data/list', [RelatoriosController::class, 'listSaidasPorData']);
 Route::post('/relatorios/entradas-por-data/list', [RelatoriosController::class, 'listEntradasPorData']);
+Route::post('/relatorios/estoque/list', [RelatoriosController::class, 'listEstoqueReport']);
 

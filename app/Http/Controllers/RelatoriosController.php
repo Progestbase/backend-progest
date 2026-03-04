@@ -767,4 +767,182 @@ class RelatoriosController extends Controller
             ], 500);
         }
     }
+
+
+    public function listEstoqueReport(Request $request)
+    {
+        try {
+            $data = $request->all();
+            
+            // Validação dos filtros
+            $validator = Validator::make($data, [
+                'filters.setor_id' => 'nullable|exists:setores,id',
+                'filters.produto_id' => 'nullable|exists:produtos,id',
+                'filters.tipo' => 'nullable|string|in:Medicamento,Material',
+                'filters.status_disponibilidade' => 'nullable|string|in:D,I',
+                'filters.abaixo_minimo' => 'nullable|boolean',
+                'filters.dias_vencimento' => 'nullable|integer|min:1|max:365',
+                'per_page' => 'nullable|integer|min:1|max:500',
+                'page' => 'nullable|integer|min:1',
+            ], [
+                'filters.setor_id.exists' => 'Setor não encontrado.',
+                'filters.produto_id.exists' => 'Produto não encontrado.',
+                'filters.tipo.in' => 'Tipo inválido. Use: Medicamento ou Material.',
+                'filters.status_disponibilidade.in' => 'Status inválido. Use: D (Disponível) ou I (Indisponível).',
+                'filters.abaixo_minimo.boolean' => 'Filtro abaixo do mínimo deve ser verdadeiro ou falso.',
+                'filters.dias_vencimento.integer' => 'Dias de vencimento deve ser um número inteiro.',
+                'filters.dias_vencimento.min' => 'Dias de vencimento deve ser ao menos 1.',
+                'filters.dias_vencimento.max' => 'Dias de vencimento não pode exceder 365.',
+                'per_page.integer' => 'Itens por página deve ser um número inteiro.',
+                'per_page.min' => 'Itens por página deve ser ao menos 1.',
+                'per_page.max' => 'Itens por página não pode exceder 500.',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => false,
+                    'validacao' => true,
+                    'erros' => $validator->errors()
+                ], 422);
+            }
+
+            // Query base com eager loading para evitar N+1
+            $query = \App\Models\Estoque::with([
+                'produto:id,nome,codigo_simpras,codigo_barras,grupo_produto_id,unidade_medida_id',
+                'produto.grupoProduto:id,nome,tipo',
+                'produto.unidadeMedida:id,nome',
+                'setor:id,unidade_id,nome,tipo',
+                'setor.unidade:id,nome'
+            ]);
+
+            // Aplicar filtros se fornecidos
+            $filters = $data['filters'] ?? [];
+
+            if (!empty($filters['setor_id'])) {
+                $query->where('unidade_id', $filters['setor_id']);
+            }
+
+            if (!empty($filters['produto_id'])) {
+                $query->where('produto_id', $filters['produto_id']);
+            }
+
+            if (!empty($filters['status_disponibilidade'])) {
+                $query->where('status_disponibilidade', $filters['status_disponibilidade']);
+            }
+
+            // Filtro por tipo de produto
+            if (!empty($filters['tipo'])) {
+                $query->whereHas('produto.grupoProduto', function ($q) use ($filters) {
+                    $q->where('tipo', $filters['tipo']);
+                });
+            }
+
+            // Filtro por produtos abaixo do mínimo
+            if (!empty($filters['abaixo_minimo']) && $filters['abaixo_minimo'] === true) {
+                $query->whereRaw('quantidade_atual < quantidade_minima');
+            }
+
+            // Ordenação: por nome do produto e depois por setor
+            $query->join('setores as s', 'estoque.unidade_id', '=', 's.id')
+                  ->join('produtos as p', 'estoque.produto_id', '=', 'p.id')
+                  ->orderBy('p.nome', 'asc')
+                  ->orderBy('s.nome', 'asc')
+                  ->select('estoque.*'); // Importante: selecionar apenas campos da tabela estoque
+
+            // Paginação
+            $perPage = $data['per_page'] ?? 50;
+            $paginated = $query->paginate($perPage);
+
+            // Buscar lotes para cada item do estoque
+            $items = collect($paginated->items())->map(function ($estoque) use ($filters) {
+                // Buscar lotes deste produto neste setor
+                $lotesQuery = \App\Models\EstoqueLote::where('unidade_id', $estoque->unidade_id)
+                    ->where('produto_id', $estoque->produto_id)
+                    ->where('quantidade_disponivel', '>', 0)
+                    ->orderBy('data_vencimento', 'asc');
+
+                // Filtro por dias de vencimento se fornecido
+                if (!empty($filters['dias_vencimento'])) {
+                    $dataLimite = now()->addDays($filters['dias_vencimento']);
+                    $lotesQuery->whereDate('data_vencimento', '<=', $dataLimite);
+                }
+
+                $lotes = $lotesQuery->get();
+
+                // Calcular estatísticas dos lotes
+                $loteVencimentoProximo = $lotes->first(); // Primeiro lote (mais próximo de vencer)
+                $totalLotes = $lotes->count();
+                $quantidadeLotes = $lotes->sum('quantidade_disponivel');
+
+                // Adicionar informações de lotes ao objeto estoque
+                $estoque->lotes_info = [
+                    'total_lotes' => $totalLotes,
+                    'quantidade_total_lotes' => (int) $quantidadeLotes,
+                    'lote_proximo_vencimento' => $loteVencimentoProximo ? [
+                        'lote' => $loteVencimentoProximo->lote,
+                        'quantidade' => (int) $loteVencimentoProximo->quantidade_disponivel,
+                        'data_vencimento' => $loteVencimentoProximo->data_vencimento->format('Y-m-d'),
+                        'dias_para_vencer' => now()->diffInDays($loteVencimentoProximo->data_vencimento, false)
+                    ] : null,
+                    'lotes' => $lotes->map(function($lote) {
+                        return [
+                            'id' => $lote->id,
+                            'lote' => $lote->lote,
+                            'quantidade_disponivel' => (int) $lote->quantidade_disponivel,
+                            'data_vencimento' => $lote->data_vencimento->format('Y-m-d'),
+                            'data_fabricacao' => $lote->data_fabricacao ? $lote->data_fabricacao->format('Y-m-d') : null,
+                            'dias_para_vencer' => now()->diffInDays($lote->data_vencimento, false),
+                            'vencido' => $lote->data_vencimento < now()
+                        ];
+                    })
+                ];
+
+                // Adicionar flag se está abaixo do mínimo
+                $estoque->abaixo_minimo = $estoque->quantidade_atual < $estoque->quantidade_minima;
+
+                return $estoque;
+            });
+
+            // Recriar o objeto de paginação com os items transformados
+            $paginationData = [
+                'current_page' => $paginated->currentPage(),
+                'data' => $items,
+                'first_page_url' => $paginated->url(1),
+                'from' => $paginated->firstItem(),
+                'last_page' => $paginated->lastPage(),
+                'last_page_url' => $paginated->url($paginated->lastPage()),
+                'next_page_url' => $paginated->nextPageUrl(),
+                'path' => $paginated->path(),
+                'per_page' => $paginated->perPage(),
+                'prev_page_url' => $paginated->previousPageUrl(),
+                'to' => $paginated->lastItem(),
+                'total' => $paginated->total(),
+            ];
+
+            // Calcular totalizadores
+            $totalizadores = [
+                'total_itens' => $paginated->total(),
+                'total_produtos_disponiveis' => \App\Models\Estoque::where('status_disponibilidade', 'D')->count(),
+                'total_produtos_indisponiveis' => \App\Models\Estoque::where('status_disponibilidade', 'I')->count(),
+                'total_abaixo_minimo' => \App\Models\Estoque::whereRaw('quantidade_atual < quantidade_minima')->count(),
+            ];
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Relatório de estoque recuperado com sucesso',
+                'data' => $paginationData,
+                'totalizadores' => $totalizadores
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao gerar relatório de estoque: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao gerar relatório de estoque'
+            ], 500);
+        }
+    }
 }
