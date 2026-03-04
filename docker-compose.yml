@@ -36,11 +36,9 @@ services:
         restart: unless-stopped
         labels:
             - "traefik.enable=true"
-            # IMPORTANTE: Especificar qual rede o Traefik deve usar
-            - "traefik.docker.network=traefik-public"
-            # Configuração do DOMÍNIO DA API (Corrigido: progrest -> progest)
+            # Configuração do DOMÍNIO DA API
             - "traefik.http.routers.progest-api.rule=Host(`hgvcprogest-api.davidjunior.dev.br`)"
-            - "traefik.http.routers.progest-api.entrypoints=web,websecure"
+            - "traefik.http.routers.progest-api.entrypoints=websecure"
             - "traefik.http.routers.progest-api.tls=true"
             - "traefik.http.routers.progest-api.tls.certresolver=myresolver"
             # Middleware CORS
@@ -62,3 +60,4 @@ networks:
     progest-network: {}
     traefik-public:
         external: true
+        name: traefik-public
