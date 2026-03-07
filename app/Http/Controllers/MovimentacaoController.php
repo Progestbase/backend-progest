@@ -154,8 +154,6 @@ class MovimentacaoController extends Controller
             return response()->json(['status' => false, 'message' => "action inválida: '$action'"], 422);
         }
 
-        
-
         try {
             DB::beginTransaction();
 
