@@ -11,8 +11,10 @@ class UnidadeMedidaRequest extends BaseFormRequest
     {
         // Pega o ID da requisição, caso seja uma edição (update)
         $id = $this->input('unidadeMedida.id');
+        $isUpdate = !empty($id);
 
         return [
+            'unidadeMedida.id' => $isUpdate ? 'required|integer|exists:unidade_medida,id' : 'nullable',
             // 'unique' verifica a tabela 'unidade_medida', coluna 'nome', e ignora o registro atual na edição
             'unidadeMedida.nome' => 'required|string|max:100|unique:unidade_medida,nome,' . $id,
             'unidadeMedida.quantidade_unidade_minima' => 'required|integer|min:1',
