@@ -44,18 +44,38 @@ class UnidadeMedidaController
 
     public function listAll(Request $request)
     {
-        $data = $request->all();
-        $filters = $data['filters'] ?? [];
-
         $query = UnidadeMedida::query();
+
+        // Busca textual por nome
+        $search = $request->input('search');
+        if (!empty($search)) {
+            $query->where('nome', 'LIKE', '%' . $search . '%');
+        }
+
+        // Filtros legados (compatibilidade)
+        $filters = $request->input('filters', []);
         foreach ($filters as $condition) {
-            foreach ($condition as $column => $value) {
-                $query->where($column, $value);
+            if (is_array($condition)) {
+                foreach ($condition as $column => $value) {
+                    $allowedColumns = ['nome', 'status'];
+                    if (in_array($column, $allowedColumns)) {
+                        $query->where($column, 'LIKE', '%' . $value . '%');
+                    }
+                }
             }
         }
 
+        // Ordenação dinâmica
+        $sortBy = $request->input('sort_by', 'nome');
+        $sortDir = $request->input('sort_dir', 'asc');
+        $allowedSortColumns = ['id', 'nome', 'quantidade_unidade_minima', 'status'];
+        if (in_array($sortBy, $allowedSortColumns) && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('nome', 'asc');
+        }
+
         $result = $query->select('id', 'nome', 'quantidade_unidade_minima', 'status')
-            ->orderBy('nome')
             ->get();
 
         return ['status' => true, 'data' => $result];
@@ -83,18 +103,22 @@ class UnidadeMedidaController
             return response()->json(['status' => false, 'message' => 'Unidade de medida não encontrada.'], 404);
         }
 
-        // verificar referências se necessário (ex: produtos)
-        $productCount = DB::table('produtos')->where('unidade_medida_id', $id)->count();
-        if ($productCount > 0) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Não é possível excluir: existem produtos vinculados a esta unidade.',
-                'references' => ['produtos (' . $productCount . ')']
-            ], 422);
+        // Toggle: se ativo → inativa, se inativo → ativa
+        if ($um->status === 'A') {
+            // Ao inativar, verificar referências
+            $productCount = DB::table('produtos')->where('unidade_medida_id', $id)->count();
+            if ($productCount > 0) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Não é possível inativar: existem ' . $productCount . ' produto(s) vinculado(s) a esta unidade.',
+                ], 422);
+            }
         }
 
-        $um->delete();
+        $um->status = $um->status === 'A' ? 'I' : 'A';
+        $um->save();
 
-        return response()->json(['status' => true, 'message' => 'Unidade de medida excluída com sucesso.'], 200);
+        $action = $um->status === 'A' ? 'ativada' : 'inativada';
+        return response()->json(['status' => true, 'message' => "Unidade de medida {$action} com sucesso.", 'data' => $um]);
     }
 }

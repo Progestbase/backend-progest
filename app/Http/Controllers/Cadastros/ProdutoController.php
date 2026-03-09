@@ -17,29 +17,74 @@ class ProdutoController
     public function listAll(Request $request)
     {
         try {
-            $data = $request->all();
-            $filters = $data['filters'] ?? [];
-            $perPage = $data['per_page'] ?? 15;
-
             $query = Produto::with(['grupoProduto', 'unidadeMedida']);
 
-            // Aplicar filtros
+            // Busca textual por nome, marca ou grupo
+            $search = $request->input('search');
+            if (!empty($search)) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('nome', 'LIKE', '%' . $search . '%')
+                      ->orWhere('marca', 'LIKE', '%' . $search . '%')
+                      ->orWhereHas('grupoProduto', function ($gq) use ($search) {
+                          $gq->where('nome', 'LIKE', '%' . $search . '%');
+                      });
+                });
+            }
+
+            // Filtro por grupo_produto_id
+            $grupoProdutoId = $request->input('grupo_produto_id');
+            if (!empty($grupoProdutoId)) {
+                $query->where('grupo_produto_id', $grupoProdutoId);
+            }
+
+            // Filtro por marca
+            $marca = $request->input('marca');
+            if (!empty($marca)) {
+                $query->where('marca', $marca);
+            }
+
+            // Filtros legados (compatibilidade)
+            $filters = $request->input('filters', []);
             foreach ($filters as $condition) {
-                foreach ($condition as $column => $value) {
-                    if ($value !== null && $value !== '') {
-                        if ($column === 'grupo_produto_id' || $column === 'unidade_medida_id' || $column === 'status') {
-                            $query->where($column, $value);
-                        } else {
-                            $query->where($column, 'like', '%' . $value . '%');
+                if (is_array($condition)) {
+                    foreach ($condition as $column => $value) {
+                        if ($value !== null && $value !== '') {
+                            $allowedColumns = ['nome', 'marca', 'grupo_produto_id', 'unidade_medida_id', 'status'];
+                            if (in_array($column, $allowedColumns)) {
+                                if (in_array($column, ['grupo_produto_id', 'unidade_medida_id', 'status'])) {
+                                    $query->where($column, $value);
+                                } else {
+                                    $query->where($column, 'LIKE', '%' . $value . '%');
+                                }
+                            }
                         }
                     }
                 }
             }
 
+            // Ordenação dinâmica
+            $sortBy = $request->input('sort_by', 'nome');
+            $sortDir = $request->input('sort_dir', 'asc');
+            
+            $allowedSortColumns = ['id', 'nome', 'marca', 'status'];
+            
+            if (in_array($sortBy, $allowedSortColumns) && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+                $query->orderBy('produtos.' . $sortBy, $sortDir);
+            } elseif ($sortBy === 'grupo_produto' && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+                // Ordenar pelo nome do grupo
+                $query->join('grupo_produto', 'produtos.grupo_produto_id', '=', 'grupo_produto.id')
+                      ->orderBy('grupo_produto.nome', $sortDir);
+            } elseif ($sortBy === 'unidade_medida' && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+                // Ordenar pelo nome/sigla da unidade
+                $query->join('unidade_medida', 'produtos.unidade_medida_id', '=', 'unidade_medida.id')
+                      ->orderBy('unidade_medida.nome', $sortDir);
+            } else {
+                $query->orderBy('produtos.nome', 'asc');
+            }
+
             $produtos = $query
-                ->select('id', 'nome', 'marca', 'codigo_simpras', 'codigo_barras', 'grupo_produto_id', 'unidade_medida_id', 'status', 'created_at', 'updated_at')
-                ->orderBy('nome')
-                ->paginate($perPage);
+                ->select('produtos.id', 'produtos.nome', 'produtos.marca', 'produtos.codigo_simpras', 'produtos.codigo_barras', 'produtos.grupo_produto_id', 'produtos.unidade_medida_id', 'produtos.status')
+                ->get();
 
             return response()->json(['status' => true, 'data' => $produtos]);
         } catch (\Throwable $e) {
@@ -78,8 +123,8 @@ class ProdutoController
             $data = $request->validated()['produto'];
 
             $produto = new Produto();
-            $produto->nome = mb_strtoupper(trim($data['nome']));
-            $produto->marca = !empty($data['marca']) ? mb_strtoupper(trim($data['marca'])) : null;
+            $produto->nome = trim($data['nome']);
+            $produto->marca = !empty($data['marca']) ? trim($data['marca']) : null;
             $produto->codigo_simpras = !empty($data['codigo_simpras']) ? trim($data['codigo_simpras']) : null;
             $produto->codigo_barras = !empty($data['codigo_barras']) ? trim($data['codigo_barras']) : null;
             $produto->grupo_produto_id = $data['grupo_produto_id'];
@@ -87,8 +132,6 @@ class ProdutoController
             $produto->status = $data['status'] ?? 'A';
 
             $produto->save();
-
-            // Recarregar com relacionamentos
             $produto->load(['grupoProduto', 'unidadeMedida']);
 
             return response()->json(['status' => true, 'data' => $produto, 'message' => 'Produto cadastrado com sucesso'], 201);
@@ -109,8 +152,8 @@ class ProdutoController
             $produto = Produto::find($data['id']);
             if (!$produto) return response()->json(['status' => false, 'message' => 'Produto não encontrado'], 404);
 
-            $produto->nome = mb_strtoupper(trim($data['nome']));
-            $produto->marca = !empty($data['marca']) ? mb_strtoupper(trim($data['marca'])) : null;
+            $produto->nome = trim($data['nome']);
+            $produto->marca = !empty($data['marca']) ? trim($data['marca']) : null;
             $produto->codigo_simpras = !empty($data['codigo_simpras']) ? trim($data['codigo_simpras']) : null;
             $produto->codigo_barras = !empty($data['codigo_barras']) ? trim($data['codigo_barras']) : null;
             $produto->grupo_produto_id = $data['grupo_produto_id'];
@@ -118,8 +161,6 @@ class ProdutoController
             $produto->status = $data['status'] ?? $produto->status;
 
             $produto->save();
-
-            // Recarregar com relacionamentos
             $produto->load(['grupoProduto', 'unidadeMedida']);
 
             return response()->json(['status' => true, 'data' => $produto, 'message' => 'Produto atualizado com sucesso']);
@@ -132,34 +173,34 @@ class ProdutoController
     /**
      * Excluir produto
      */
-    public function delete(Request $request)
+    public function delete($id)
     {
         try {
-            $id = $request->input('id');
-
-            if (!$id) return response()->json(['status' => false, 'message' => 'ID do produto é obrigatório'], 400);
-
             $produto = Produto::find($id);
             if (!$produto) return response()->json(['status' => false, 'message' => 'Produto não encontrado'], 404);
 
-            $references = [];
-            if ($produto->itensEntrada()->count() > 0) $references[] = 'Entradas';
-            if ($produto->itensMovimentacao()->count() > 0) $references[] = 'Movimentações';
+            // Ao inativar, verificar referências
+            if ($produto->status === 'A') {
+                $references = [];
+                if ($produto->itensEntrada()->count() > 0) $references[] = 'Entradas';
+                if ($produto->itensMovimentacao()->count() > 0) $references[] = 'Movimentações';
 
-            // Dispara erro 422 para o nosso Interceptor apanhar e listar as referências!
-            if (!empty($references)) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Não é possível excluir este produto pois ele possui registros associados.',
-                    'references' => $references
-                ], 422);
+                if (!empty($references)) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Não é possível inativar: existem registros vinculados (' . implode(', ', $references) . ').',
+                    ], 422);
+                }
             }
 
-            $produto->delete();
+            $produto->status = $produto->status === 'A' ? 'I' : 'A';
+            $produto->save();
+            $produto->load(['grupoProduto', 'unidadeMedida']);
 
-            return response()->json(['status' => true, 'message' => 'Produto excluído com sucesso']);
+            $action = $produto->status === 'A' ? 'ativado' : 'inativado';
+            return response()->json(['status' => true, 'message' => "Produto {$action} com sucesso.", 'data' => $produto]);
         } catch (\Throwable $e) {
-            Log::error('Erro ao excluir produto: ' . $e->getMessage());
+            Log::error('Erro ao alterar status do produto: ' . $e->getMessage());
             return response()->json(['status' => false, 'message' => 'Erro interno do servidor'], 500);
         }
     }

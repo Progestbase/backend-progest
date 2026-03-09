@@ -12,7 +12,7 @@ class GrupoProdutoRequest extends BaseFormRequest
         $id = $data['id'] ?? null;
 
         $rules = [
-            'grupoProduto.id' => 'nullable|integer',
+            'grupoProduto.id' => $id ? 'required|integer|exists:grupo_produto,id' : 'nullable',
             'grupoProduto.nome' => 'required|string|min:3|max:191|unique:grupo_produto,nome,' . $id,
             'grupoProduto.tipo' => 'required|in:Medicamento,Material',
             'grupoProduto.status' => 'required|in:A,I',

@@ -119,7 +119,7 @@ Route::post('/fornecedores/add', [FornecedorController::class, 'add']);
 Route::post('/fornecedores/update', [FornecedorController::class, 'update']);
 Route::post('/fornecedores/list', [FornecedorController::class, 'listAll']);
 Route::post('/fornecedores/listData', [FornecedorController::class, 'listData']);
-Route::post('/fornecedores/delete', [FornecedorController::class, 'delete']);
+Route::post('/fornecedores/delete/{id}', [FornecedorController::class, 'delete']);
 Route::post('/fornecedores/toggleStatus', [FornecedorController::class, 'toggleStatus']);
 
 // Rotas para produtos
@@ -127,7 +127,7 @@ Route::post('/produtos/add', [ProdutoController::class, 'add']);
 Route::post('/produtos/update', [ProdutoController::class, 'update']);
 Route::post('/produtos/list', [ProdutoController::class, 'listAll']);
 Route::post('/produtos/listData', [ProdutoController::class, 'listData']);
-Route::post('/produtos/delete', [ProdutoController::class, 'delete']);
+Route::post('/produtos/delete/{id}', [ProdutoController::class, 'delete']);
 Route::post('/produtos/toggleStatus', [ProdutoController::class, 'toggleStatus']);
 Route::post('/produtos/dadosAuxiliares', [ProdutoController::class, 'getDadosAuxiliares']);
 Route::post('/produtos/listByTipo', [ProdutoController::class, 'listByTipo']);

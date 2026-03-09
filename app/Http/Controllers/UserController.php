@@ -98,19 +98,58 @@ class UserController extends Controller
 
     public function listAll(Request $request)
     {
-        $filters = $request->input('filters', []);
-
         $query = User::query();
 
+        // Busca textual multi-campo (name, email, cpf, telefone)
+        $search = $request->input('search');
+        if (!empty($search)) {
+            $searchTerm = '%' . $search . '%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', $searchTerm)
+                  ->orWhere('email', 'LIKE', $searchTerm)
+                  ->orWhere('cpf', 'LIKE', $searchTerm)
+                  ->orWhere('telefone', 'LIKE', $searchTerm);
+            });
+        }
+
+        // Filtro por tipo_vinculo
+        $tipoVinculo = $request->input('tipo_vinculo');
+        if (!empty($tipoVinculo)) {
+            $query->where('tipo_vinculo', $tipoVinculo);
+        }
+
+        // Filtro por status
+        $status = $request->input('status');
+        if (!empty($status)) {
+            $query->where('status', $status);
+        }
+
+        // Filtros legados (compatibilidade com chamadas anteriores)
+        $filters = $request->input('filters', []);
         foreach ($filters as $condition) {
-            foreach ($condition as $column => $value) {
-                $query->where($column, $value);
+            if (is_array($condition)) {
+                foreach ($condition as $column => $value) {
+                    $allowedColumns = ['name', 'email', 'cpf', 'telefone', 'status', 'tipo_vinculo'];
+                    if (in_array($column, $allowedColumns)) {
+                        $query->where($column, 'LIKE', '%' . $value . '%');
+                    }
+                }
             }
+        }
+
+        // Ordenação dinâmica
+        $sortBy = $request->input('sort_by', 'name');
+        $sortDir = $request->input('sort_dir', 'asc');
+        $allowedSortColumns = ['id', 'name', 'email', 'cpf', 'status', 'tipo_vinculo'];
+        if (in_array($sortBy, $allowedSortColumns) && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('name', 'asc');
         }
 
         $users = $query->select(
             'id', 'name', 'email', 'cpf', 'telefone', 'data_nascimento', 'status', 'tipo_vinculo'
-        )->orderBy('name')->get();
+        )->get();
 
         return response()->json(['status' => true, 'data' => $users]);
     }
@@ -142,13 +181,15 @@ class UserController extends Controller
             return response()->json(['status' => false, 'message' => 'Usuário não encontrado.'], 404);
         }
         if ($user->email === 'admin@admin.com') {
-            return response()->json(['status' => false, 'message' => 'O usuário Admin não pode ser excluído.'], 403);
+            return response()->json(['status' => false, 'message' => 'O usuário Admin não pode ser alterado.'], 403);
         }
 
-        $user->status = 'I';
+        // Toggle: se ativo → inativa, se inativo → ativa
+        $user->status = $user->status === 'A' ? 'I' : 'A';
         $user->save();
 
-        return response()->json(['status' => true, 'message' => 'Usuário desativado com sucesso.']);
+        $action = $user->status === 'A' ? 'ativado' : 'desativado';
+        return response()->json(['status' => true, 'message' => "Usuário {$action} com sucesso.", 'data' => $user]);
     }
 
     public function countUsers()

@@ -15,7 +15,7 @@ class PoloController
             $data = $request->validated();
 
             $polo = Polo::create([
-                'nome' => mb_strtoupper($data['nome']),
+                'nome' => $data['nome'],
                 'status' => $data['status'] ?? 'A'
             ]);
 
@@ -29,25 +29,44 @@ class PoloController
     public function listAll(Request $request)
     {
         try {
-            $data = $request->all();
-            $filters = $data['filters'] ?? [];
-            $perPage = $data['per_page'] ?? 15;
-
             $query = Polo::query();
 
+            // Busca textual por nome
+            $search = $request->input('search');
+            if (!empty($search)) {
+                $query->where('nome', 'LIKE', '%' . $search . '%');
+            }
+
+            // Filtros legados (compatibilidade)
+            $filters = $request->input('filters', []);
             foreach ($filters as $condition) {
-                foreach ($condition as $column => $value) {
-                    if ($value !== null && $value !== '') {
-                        if ($column === 'status') {
-                            $query->where($column, $value);
-                        } else {
-                            $query->where($column, 'like', '%' . $value . '%');
+                if (is_array($condition)) {
+                    foreach ($condition as $column => $value) {
+                        if ($value !== null && $value !== '') {
+                            $allowedColumns = ['nome', 'status'];
+                            if (in_array($column, $allowedColumns)) {
+                                if ($column === 'status') {
+                                    $query->where($column, $value);
+                                } else {
+                                    $query->where($column, 'LIKE', '%' . $value . '%');
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            $polos = $query->orderBy('nome')->paginate($perPage);
+            // Ordenação dinâmica
+            $sortBy = $request->input('sort_by', 'nome');
+            $sortDir = $request->input('sort_dir', 'asc');
+            $allowedSortColumns = ['id', 'nome', 'status'];
+            if (in_array($sortBy, $allowedSortColumns) && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+                $query->orderBy($sortBy, $sortDir);
+            } else {
+                $query->orderBy('nome', 'asc');
+            }
+
+            $polos = $query->select('id', 'nome', 'status')->get();
 
             return response()->json(['status' => true, 'data' => $polos]);
         } catch (\Throwable $e) {
@@ -84,7 +103,7 @@ class PoloController
             if (!$polo) return response()->json(['status' => false, 'message' => 'Polo não encontrado'], 404);
 
             $polo->update([
-                'nome' => mb_strtoupper($data['nome']),
+                'nome' => $data['nome'],
                 'status' => $data['status'] ?? $polo->status
             ]);
 
@@ -100,23 +119,27 @@ class PoloController
         try {
             $polo = Polo::find($id);
 
-            if (!$polo) return response()->json(['status' => false, 'message' => 'Polo não encontrado'], 404);
+            if (!$polo) return response()->json(['status' => false, 'message' => 'Unidade não encontrada'], 404);
 
-            // Regra de Negócio: Retornar 422 para o Interceptor apanhar se houver dependências
-            $setoresCount = $polo->setores()->count();
-            if ($setoresCount > 0) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Não é possível excluir esta unidade pois possui setores vinculados.',
-                    'references' => ['setores (' . $setoresCount . ')']
-                ], 422); 
+            // Toggle: se ativo → inativa, se inativo → ativa
+            if ($polo->status === 'A') {
+                // Ao inativar, verificar referências
+                $setoresCount = $polo->setores()->count();
+                if ($setoresCount > 0) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Não é possível inativar: existem ' . $setoresCount . ' setor(es) vinculado(s).',
+                    ], 422);
+                }
             }
 
-            $polo->delete();
+            $polo->status = $polo->status === 'A' ? 'I' : 'A';
+            $polo->save();
 
-            return response()->json(['status' => true, 'message' => 'Polo deletado com sucesso']);
+            $action = $polo->status === 'A' ? 'ativada' : 'inativada';
+            return response()->json(['status' => true, 'message' => "Unidade {$action} com sucesso.", 'data' => $polo]);
         } catch (\Throwable $e) {
-            Log::error('Erro ao deletar polo: ' . $e->getMessage());
+            Log::error('Erro ao alterar status do polo: ' . $e->getMessage());
             return response()->json(['status' => false, 'message' => 'Erro interno do servidor'], 500);
         }
     }
