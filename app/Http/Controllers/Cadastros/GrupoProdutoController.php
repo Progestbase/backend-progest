@@ -30,20 +30,45 @@ class GrupoProdutoController
 
     public function listAll(Request $request)
     {
-        $data = $request->all();
-        $filters = $data['filters'] ?? [];
+        $query = GrupoProduto::query();
 
-        $grupoProdutoQuery = GrupoProduto::query();
+        // Busca textual por nome
+        $search = $request->input('search');
+        if (!empty($search)) {
+            $query->where('nome', 'LIKE', '%' . $search . '%');
+        }
 
+        // Filtro por tipo
+        $tipo = $request->input('tipo');
+        if (!empty($tipo)) {
+            $query->where('tipo', $tipo);
+        }
+
+        // Filtros legados (compatibilidade)
+        $filters = $request->input('filters', []);
         foreach ($filters as $condition) {
-            foreach ($condition as $column => $value) {
-                $grupoProdutoQuery->where($column, $value);
+            if (is_array($condition)) {
+                foreach ($condition as $column => $value) {
+                    $allowedColumns = ['nome', 'status', 'tipo'];
+                    if (in_array($column, $allowedColumns)) {
+                        $query->where($column, 'LIKE', '%' . $value . '%');
+                    }
+                }
             }
         }
 
-        $grupoProdutos = $grupoProdutoQuery
-            ->select('id', 'nome', 'status', 'tipo', 'created_at', 'updated_at')
-            ->orderBy('nome')
+        // Ordenação dinâmica
+        $sortBy = $request->input('sort_by', 'nome');
+        $sortDir = $request->input('sort_dir', 'asc');
+        $allowedSortColumns = ['id', 'nome', 'tipo', 'status'];
+        if (in_array($sortBy, $allowedSortColumns) && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            $query->orderBy('nome', 'asc');
+        }
+
+        $grupoProdutos = $query
+            ->select('id', 'nome', 'status', 'tipo')
             ->get();
 
         return response()->json(['status' => true, 'data' => $grupoProdutos]);
@@ -100,22 +125,27 @@ class GrupoProdutoController
             ], 404);
         }
 
-        // Verificar se há produtos relacionados
-        $references = $this->checkGrupoProdutoReferences($id);
-        if (!empty($references)) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Não é possível excluir este grupo de produto pois ele possui registros relacionados no sistema.',
-                'references' => $references
-            ], 422);
+        // Toggle: se ativo → inativa, se inativo → ativa
+        if ($grupoProduto->status === 'A') {
+            // Ao inativar, verificar referências
+            $references = $this->checkGrupoProdutoReferences($id);
+            if (!empty($references)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Não é possível inativar: existem registros vinculados (' . implode(', ', $references) . ').',
+                ], 422);
+            }
         }
 
-        $grupoProduto->delete();
+        $grupoProduto->status = $grupoProduto->status === 'A' ? 'I' : 'A';
+        $grupoProduto->save();
 
+        $action = $grupoProduto->status === 'A' ? 'ativado' : 'inativado';
         return response()->json([
             'status' => true,
-            'message' => 'Grupo de produto excluído com sucesso.'
-        ], 200);
+            'message' => "Grupo de produto {$action} com sucesso.",
+            'data' => $grupoProduto
+        ]);
     }
 
     private function checkGrupoProdutoReferences($id)
