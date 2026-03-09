@@ -49,36 +49,58 @@ class FornecedorController
     public function listAll(Request $request)
     {
         try {
-            $data = $request->all();
-            $filters = $data['filters'] ?? [];
-            $perPage = $data['per_page'] ?? 15;
-
             $query = Fornecedor::query();
 
-            // Aplicar filtros
+            // Busca textual por nome/razão social, CPF ou CNPJ
+            $search = $request->input('search');
+            if (!empty($search)) {
+                $searchTerm = '%' . $search . '%';
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('razao_social_nome', 'LIKE', $searchTerm)
+                      ->orWhere('cpf', 'LIKE', $searchTerm)
+                      ->orWhere('cnpj', 'LIKE', $searchTerm);
+                });
+            }
+
+            // Filtro por tipo_pessoa
+            $tipoPessoa = $request->input('tipo_pessoa');
+            if (!empty($tipoPessoa)) {
+                $query->where('tipo_pessoa', $tipoPessoa);
+            }
+
+            // Filtros legados (compatibilidade)
+            $filters = $request->input('filters', []);
             foreach ($filters as $condition) {
-                foreach ($condition as $column => $value) {
-                    if ($value !== null && $value !== '') {
-                        $query->where($column, 'like', '%' . $value . '%');
+                if (is_array($condition)) {
+                    foreach ($condition as $column => $value) {
+                        if ($value !== null && $value !== '') {
+                            $allowedColumns = ['razao_social_nome', 'cnpj', 'cpf', 'status', 'tipo_pessoa'];
+                            if (in_array($column, $allowedColumns)) {
+                                $query->where($column, 'LIKE', '%' . $value . '%');
+                            }
+                        }
                     }
                 }
             }
 
-            $fornecedores = $query
-                ->select('id', 'tipo_pessoa', 'razao_social_nome', 'cpf', 'cnpj', 'status', 'created_at', 'updated_at')
-                ->orderBy('razao_social_nome')
-                ->paginate($perPage);
+            // Ordenação dinâmica
+            $sortBy = $request->input('sort_by', 'razao_social_nome');
+            $sortDir = $request->input('sort_dir', 'asc');
+            $allowedSortColumns = ['id', 'razao_social_nome', 'cnpj', 'cpf', 'tipo_pessoa', 'status'];
+            if (in_array($sortBy, $allowedSortColumns) && in_array(strtolower($sortDir), ['asc', 'desc'])) {
+                $query->orderBy($sortBy, $sortDir);
+            } else {
+                $query->orderBy('razao_social_nome', 'asc');
+            }
 
-            return response()->json([
-                'status' => true,
-                'data' => $fornecedores
-            ]);
+            $fornecedores = $query
+                ->select('id', 'tipo_pessoa', 'razao_social_nome', 'cpf', 'cnpj', 'status')
+                ->get();
+
+            return response()->json(['status' => true, 'data' => $fornecedores]);
         } catch (\Exception $e) {
             Log::error('Erro ao listar fornecedores: ' . $e->getMessage());
-            return response()->json([
-                'status' => false,
-                'message' => 'Erro interno do servidor'
-            ], 500);
+            return response()->json(['status' => false, 'message' => 'Erro interno do servidor'], 500);
         }
     }
 
@@ -165,43 +187,27 @@ class FornecedorController
     /**
      * Excluir fornecedor
      */
-    public function delete(Request $request)
+    public function delete($id)
     {
         try {
-            $data = $request->all();
-            $id = $data['id'] ?? null;
-
-            if (!$id) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'ID do fornecedor é obrigatório'
-                ], 400);
-            }
-
             $fornecedor = Fornecedor::find($id);
             if (!$fornecedor) {
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Fornecedor não encontrado'
-                ], 404);
+                return response()->json(['status' => false, 'message' => 'Fornecedor não encontrado'], 404);
             }
 
-            // Verificar se há dependências antes de excluir
-            // Aqui você pode adicionar verificações de relacionamentos se necessário
-            // Exemplo: if ($fornecedor->entradas()->count() > 0) { ... }
+            // Toggle status: ativo → inativo, inativo → ativo
+            $fornecedor->status = $fornecedor->status === 'A' ? 'I' : 'A';
+            $fornecedor->save();
 
-            $fornecedor->delete();
-
+            $action = $fornecedor->status === 'A' ? 'ativado' : 'inativado';
             return response()->json([
                 'status' => true,
-                'message' => 'Fornecedor excluído com sucesso'
+                'message' => "Fornecedor {$action} com sucesso.",
+                'data' => $fornecedor
             ]);
         } catch (\Exception $e) {
-            Log::error('Erro ao excluir fornecedor: ' . $e->getMessage());
-            return response()->json([
-                'status' => false,
-                'message' => 'Erro interno do servidor'
-            ], 500);
+            Log::error('Erro ao alterar status do fornecedor: ' . $e->getMessage());
+            return response()->json(['status' => false, 'message' => 'Erro interno do servidor'], 500);
         }
     }
 
