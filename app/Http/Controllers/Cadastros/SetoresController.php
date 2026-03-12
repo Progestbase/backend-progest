@@ -19,7 +19,17 @@ class SetoresController
     {
         $data = $request->all();
 
-        $validator = Validator::make($data['Setores'], [
+        // Aceitar tanto 'Setores' quanto 'setores' para compatibilidade
+        $setoresData = $data['Setores'] ?? $data['setores'] ?? null;
+
+        if (!$setoresData) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Dados do setor não informados.'
+            ], 422);
+        }
+
+        $validator = Validator::make($setoresData, [
             'unidade_id'       => 'required|exists:unidades,id',
             'nome'          => 'required|string|max:255',
             'estoque'       => 'sometimes|boolean',
@@ -35,12 +45,12 @@ class SetoresController
         }
 
         $Setores = new Setores;
-        $Setores->unidade_id        = $data['Setores']['unidade_id'];
-        $Setores->nome           = mb_strtoupper($data['Setores']['nome']);
-        $Setores->descricao      = $data['Setores']['descricao'] ?? '';
-        $Setores->status         = $data['Setores']['status'] ?? 'A';
-        $Setores->estoque        = $data['Setores']['estoque'] ?? false;
-        $Setores->tipo           = $data['Setores']['tipo'] ?? 'Material';
+        $Setores->unidade_id        = $setoresData['unidade_id'];
+        $Setores->nome           = mb_strtoupper($setoresData['nome']);
+        $Setores->descricao      = $setoresData['descricao'] ?? '';
+        $Setores->status         = $setoresData['status'] ?? 'A';
+        $Setores->estoque        = $setoresData['estoque'] ?? false;
+        $Setores->tipo           = $setoresData['tipo'] ?? 'Material';
 
         try {
             DB::beginTransaction();
@@ -48,14 +58,12 @@ class SetoresController
             $Setores->save();
 
             // Se enviar dados de fornecedor junto com a criação do setor
-            // Esperamos um payload opcional: $data['fornecedor'] => ['setor_id' => <id opcional>, 'tipo_produto' => 'Medicamento'|'Material']
+            // Esperamos um payload opcional: $data['fornecedor'] => ['setor_fornecedor_id' => <id do setor fornecedor>]
             if (isset($data['fornecedor']) && is_array($data['fornecedor'])) {
                 $fornecedorData = $data['fornecedor'];
 
                 $validatorFornecedor = Validator::make($fornecedorData, [
-                    'setor_id' => 'sometimes|exists:setores,id',
-                    // tipo_produto agora é opcional: se não for enviado, será inferido a partir do setor fornecedor
-                    'tipo_produto' => 'sometimes|in:Medicamento,Material'
+                    'setor_fornecedor_id' => 'required|exists:setores,id',
                 ]);
 
                 if ($validatorFornecedor->fails()) {
@@ -67,59 +75,22 @@ class SetoresController
                     ], 422);
                 }
 
-                // Determinar tipo_produto: usar enviado ou inferir a partir do setor fornecedor
-                $fornecedorSetorId = $fornecedorData['setor_id'] ?? null;
-                if (!$fornecedorSetorId) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'ID do setor fornecedor não informado.'
-                    ], 422);
-                }
+                $fornecedorSetorId = $fornecedorData['setor_fornecedor_id'];
 
-                $setorFornecedorRow = DB::table('setores')->where('id', $fornecedorSetorId)->first();
-                if (!$setorFornecedorRow) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Setor fornecedor informado não existe.'
-                    ], 422);
-                }
-
-                // Se front não enviou tipo_produto, inferimos do setor fornecedor
-                if (!isset($fornecedorData['tipo_produto'])) {
-                    $fornecedorData['tipo_produto'] = $setorFornecedorRow->tipo;
-                } else {
-                    // Se enviou, validar que bate com o tipo do setor fornecedor
-                    if ($fornecedorData['tipo_produto'] !== $setorFornecedorRow->tipo) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status' => false,
-                            'message' => 'O tipo_produto informado não corresponde ao tipo do setor fornecedor.'
-                        ], 422);
-                    }
-                }
-
-                // Verificar se já existe um fornecedor do mesmo tipo para este setor solicitante
+                // Verificar se já existe esse relacionamento
                 $exists = DB::table('setor_fornecedor')
                     ->where('setor_solicitante_id', $Setores->id)
-                    ->where('tipo_produto', $fornecedorData['tipo_produto'])
+                    ->where('setor_fornecedor_id', $fornecedorSetorId)
                     ->exists();
 
-                if ($exists) {
-                    DB::rollBack();
-                    return response()->json([
-                        'status' => false,
-                        'message' => 'Já existe um setor fornecedor cadastrado para este tipo de produto para o setor solicitante.'
-                    ], 422);
+                if (!$exists) {
+                    DB::table('setor_fornecedor')->insert([
+                        'setor_solicitante_id' => $Setores->id,
+                        'setor_fornecedor_id' => $fornecedorSetorId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
                 }
-                DB::table('setor_fornecedor')->insert([
-                    'setor_solicitante_id' => $Setores->id,
-                    'setor_fornecedor_id' => $fornecedorSetorId,
-                    'tipo_produto' => $fornecedorData['tipo_produto'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
             }
 
             DB::commit();
@@ -169,7 +140,17 @@ class SetoresController
     {
         $data = $request->all();
 
-        $validator = Validator::make($data['Setores'], [
+        // Aceitar tanto 'Setores' quanto 'setores' para compatibilidade
+        $setoresData = $data['Setores'] ?? $data['setores'] ?? null;
+
+        if (!$setoresData) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Dados do setor não informados.'
+            ], 422);
+        }
+
+        $validator = Validator::make($setoresData, [
             'unidade_id'       => 'required|exists:unidades,id',
             'nome'          => 'required|string|max:255',
             'estoque'       => 'sometimes|boolean',
@@ -184,7 +165,7 @@ class SetoresController
             ], 422);
         }
 
-        $Setores = Setores::find($data['Setores']['id']);
+        $Setores = Setores::find($setoresData['id']);
 
         if (!$Setores) {
             return response()->json([
@@ -193,44 +174,57 @@ class SetoresController
             ], 404);
         }
 
-        $Setores->unidade_id        = $data['Setores']['unidade_id'];
-        $Setores->nome           = mb_strtoupper($data['Setores']['nome']);
-        $Setores->descricao      = $data['Setores']['descricao'] ?? '';
-        $Setores->status         = $data['Setores']['status'] ?? 'A';
-        $Setores->estoque        = $data['Setores']['estoque'] ?? $Setores->estoque;
-        $Setores->tipo           = $data['Setores']['tipo'] ?? $Setores->tipo;
+        $Setores->unidade_id        = $setoresData['unidade_id'];
+        $Setores->nome           = mb_strtoupper($setoresData['nome']);
+        $Setores->descricao      = $setoresData['descricao'] ?? '';
+        $Setores->status         = $setoresData['status'] ?? 'A';
+        $Setores->estoque        = $setoresData['estoque'] ?? $Setores->estoque;
+        $Setores->tipo           = $setoresData['tipo'] ?? $Setores->tipo;
 
-        $Setores->save();
+        try {
+            DB::beginTransaction();
 
-        // Se foram enviados fornecedores para atualizar/definir
-        // Esperamos: $data['fornecedores'] = [ ['id'=> <opt existente id do relacionamento>, 'setor_fornecedor_id' => <setor id fornecedor>, 'tipo_produto' => 'Medicamento'|'Material'], ... ]
-        if (isset($data['fornecedores']) && is_array($data['fornecedores'])) {
-            try {
-                DB::beginTransaction();
+            $Setores->save();
+
+            // Se foram enviados fornecedores para atualizar/definir
+            // Esperamos: $data['fornecedores'] = [ ['setor_fornecedor_id' => <setor id fornecedor>], ... ]
+            if (isset($data['fornecedores']) && is_array($data['fornecedores'])) {
+                Log::info('Atualizando fornecedores do setor ' . $Setores->id, [
+                    'fornecedores_recebidos' => $data['fornecedores']
+                ]);
 
                 $incoming = $data['fornecedores'];
 
                 // Buscar relacionamentos atuais
                 $current = DB::table('setor_fornecedor')->where('setor_solicitante_id', $Setores->id)->get();
 
-                // Mapear ids existentes para facilitar operações
-                $incomingIds = array_filter(array_map(function ($f) {
-                    return $f['id'] ?? null;
-                }, $incoming));
+                // Mapear fornecedores enviados
+                $incomingFornecedorIds = array_map(function ($f) {
+                    return $f['setor_fornecedor_id'] ?? null;
+                }, $incoming);
+                $incomingFornecedorIds = array_filter($incomingFornecedorIds);
+
+                Log::info('Fornecedores atuais vs novos', [
+                    'atuais' => $current->pluck('setor_fornecedor_id')->toArray(),
+                    'novos' => $incomingFornecedorIds
+                ]);
 
                 // Deletar relações que não foram enviadas (removidas pelo cliente)
                 foreach ($current as $cur) {
-                    if (!in_array($cur->id, $incomingIds)) {
+                    if (!in_array($cur->setor_fornecedor_id, $incomingFornecedorIds)) {
+                        Log::info('Removendo fornecedor', [
+                            'relacionamento_id' => $cur->id,
+                            'setor_fornecedor_id' => $cur->setor_fornecedor_id
+                        ]);
                         DB::table('setor_fornecedor')->where('id', $cur->id)->delete();
                     }
                 }
 
-                // Processar incoming: criar ou atualizar
+                // Processar incoming: criar apenas os novos (duplicatas serão ignoradas pela constraint unique)
                 foreach ($incoming as $f) {
                     /** @var array $f */
                     $validatorF = Validator::make($f, [
                         'setor_fornecedor_id' => 'required|exists:setores,id',
-                        'tipo_produto' => 'required|in:Medicamento,Material',
                     ]);
 
                     if ($validatorF->fails()) {
@@ -242,54 +236,35 @@ class SetoresController
                         ], 422);
                     }
 
-                    // Verificar unicidade por tipo para este solicitante (exceto se for o próprio registro sendo atualizado)
-                    $existsQuery = DB::table('setor_fornecedor')
+                    // Verificar se já existe esse relacionamento
+                    $exists = DB::table('setor_fornecedor')
                         ->where('setor_solicitante_id', $Setores->id)
-                        ->where('tipo_produto', $f['tipo_produto']);
+                        ->where('setor_fornecedor_id', $f['setor_fornecedor_id'])
+                        ->exists();
 
-                    if (isset($f['id'])) {
-                        $existsQuery->where('id', '!=', $f['id']);
-                    }
-
-                    if ($existsQuery->exists()) {
-                        DB::rollBack();
-                        return response()->json([
-                            'status' => false,
-                            'message' => 'Já existe um setor fornecedor deste tipo para este solicitante.'
-                        ], 422);
-                    }
-
-                    if (isset($f['id'])) {
-                        // Atualizar
-                        DB::table('setor_fornecedor')->where('id', $f['id'])->update([
-                            'setor_fornecedor_id' => $f['setor_fornecedor_id'],
-                            'tipo_produto' => $f['tipo_produto'],
-                            'updated_at' => now(),
-                        ]);
-                    } else {
-                        // Criar
+                    if (!$exists) {
+                        // Criar novo relacionamento
                         DB::table('setor_fornecedor')->insert([
                             'setor_solicitante_id' => $Setores->id,
                             'setor_fornecedor_id' => $f['setor_fornecedor_id'],
-                            'tipo_produto' => $f['tipo_produto'],
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
                     }
                 }
-
-                DB::commit();
-            } catch (\Exception $e) {
-                DB::rollBack();
-                Log::error('Erro ao atualizar fornecedores do setor: ' . $e->getMessage());
-                return response()->json([
-                    'status' => false,
-                    'message' => 'Erro ao atualizar fornecedores do setor'
-                ], 500);
             }
-        }
 
-        return ['status' => true, 'data' => Setores::with(['unidade', 'fornecedoresRelacionados.fornecedor'])->find($Setores->id)];
+            DB::commit();
+
+            return ['status' => true, 'data' => Setores::with(['unidade', 'fornecedoresRelacionados.fornecedor'])->find($Setores->id)];
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao atualizar setor: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Erro ao atualizar setor'
+            ], 500);
+        }
     }
 
     public function listConsumers(Request $request)
@@ -458,7 +433,6 @@ class SetoresController
                 $fornecedores[] = [
                     'id' => $rel->id,
                     'setor_fornecedor_id' => $rel->setor_fornecedor_id,
-                    'tipo_produto' => $rel->tipo_produto,
                     'created_at' => $rel->created_at ? $rel->created_at->toDateTimeString() : null,
                     'updated_at' => $rel->updated_at ? $rel->updated_at->toDateTimeString() : null,
                     'fornecedor' => $fornecedorObj,
@@ -564,7 +538,6 @@ class SetoresController
             $fornecedores[] = [
                 'id' => $rel->id,
                 'setor_fornecedor_id' => $rel->setor_fornecedor_id,
-                'tipo_produto' => $rel->tipo_produto,
                 'created_at' => $rel->created_at ? $rel->created_at->toDateTimeString() : null,
                 'updated_at' => $rel->updated_at ? $rel->updated_at->toDateTimeString() : null,
                 'fornecedor' => $fornecedorObj,
