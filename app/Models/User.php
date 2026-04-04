@@ -62,6 +62,15 @@ class User extends Authenticatable
             ->withTimestamps();
     }
 
+    /**
+     * Relacionamento com TipoVinculo
+     * Um usuário pertence a um tipo de vínculo
+     */
+    public function tipoVinculo()
+    {
+        return $this->belongsTo(\App\Models\TipoVinculo::class, 'tipo_vinculo');
+    }
+
     public static function boot()
     {
         parent::boot();

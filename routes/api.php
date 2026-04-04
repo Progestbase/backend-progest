@@ -73,6 +73,13 @@ Route::post('/tipoVinculo/list', [TipoVinculoController::class, 'listAll']);
 Route::post('/tipoVinculo/listData', [TipoVinculoController::class, 'listData']);
 Route::post('/tipoVinculo/delete/{id}', [TipoVinculoController::class, 'delete']);
 
+// Rotas alternativas com hífen para compatibilidade
+Route::post('/tipo-vinculo/add', [TipoVinculoController::class, 'add']);
+Route::post('/tipo-vinculo/update', [TipoVinculoController::class, 'update']);
+Route::post('/tipo-vinculo/list', [TipoVinculoController::class, 'listAll']);
+Route::post('/tipo-vinculo/listData', [TipoVinculoController::class, 'listData']);
+Route::post('/tipo-vinculo/delete/{id}', [TipoVinculoController::class, 'delete']);
+
 // Rotas para unidade (mantém compatibilidade com /polo)
 Route::post('/unidade/add', [UnidadeController::class, 'add']);
 Route::post('/unidade/update', [UnidadeController::class, 'update']);
@@ -179,4 +186,5 @@ Route::post('/relatorios/saidas/list', [RelatoriosController::class, 'listSaidas
 Route::post('/relatorios/saidas-por-data/list', [RelatoriosController::class, 'listSaidasPorData']);
 Route::post('/relatorios/entradas-por-data/list', [RelatoriosController::class, 'listEntradasPorData']);
 Route::post('/relatorios/estoque/list', [RelatoriosController::class, 'listEstoqueReport']);
+Route::post('/relatorios/usuarios/list', [RelatoriosController::class, 'listUsuariosReport']);
 
