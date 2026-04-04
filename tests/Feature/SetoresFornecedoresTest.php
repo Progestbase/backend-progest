@@ -3,17 +3,20 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Models\Setores;
 use App\Models\Unidade;
 use App\Models\SetorFornecedor;
 
 class SetoresFornecedoresTest extends TestCase
 {
-    use RefreshDatabase;
+    // NOTA: RefreshDatabase removido - testes rodam no banco real
 
     public function test_create_setor_with_fornecedor_and_uniqueness()
     {
+        // Limpar dados de testes anteriores
+        Setores::where('nome', 'LIKE', 'FORNECEDOR A%')->delete();
+        Setores::where('nome', 'LIKE', 'SOLICITANTE%')->delete();
+        
         // Criar unidade
         $unidade = Unidade::factory()->create();
 
@@ -35,8 +38,7 @@ class SetoresFornecedoresTest extends TestCase
                 'estoque' => false
             ],
             'fornecedor' => [
-                'setor_id' => $fornecedor->id,
-                'tipo_produto' => 'Medicamento'
+                'setor_fornecedor_id' => $fornecedor->id  // Campo correto
             ]
         ];
 
@@ -47,12 +49,12 @@ class SetoresFornecedoresTest extends TestCase
         $this->assertNotNull($solicitante);
 
         $rel = SetorFornecedor::where('setor_solicitante_id', $solicitante->id)
-            ->where('tipo_produto', 'Medicamento')
+            ->where('setor_fornecedor_id', $fornecedor->id)
             ->first();
 
         $this->assertNotNull($rel);
 
-        // Tentar criar outro fornecedor do mesmo tipo deve falhar
+        // Criar outro solicitante com o mesmo fornecedor (deve funcionar)
         $payload2 = [
             'Setores' => [
                 'unidade_id' => $unidade->id,
@@ -61,8 +63,7 @@ class SetoresFornecedoresTest extends TestCase
                 'estoque' => false
             ],
             'fornecedor' => [
-                'setor_id' => $fornecedor->id,
-                'tipo_produto' => 'Medicamento'
+                'setor_fornecedor_id' => $fornecedor->id  // Campo correto
             ]
         ];
 

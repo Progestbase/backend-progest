@@ -222,20 +222,66 @@ class MovimentacaoController extends Controller
 
                     if ($qtdLiberar <= 0) continue;
 
-                    // Deduz do estoque de origem (A atomicidade é garantida pelo Lock acima)
-                    Estoque::where('produto_id', $item->produto_id)
+                    Log::info("Processando transferência", [
+                        'produto_id' => $item->produto_id,
+                        'quantidade' => $qtdLiberar,
+                        'origem_id' => $mov->setor_origem_id,
+                        'destino_id' => $mov->setor_destino_id
+                    ]);
+
+                    // 1. DEDUZIR do estoque de ORIGEM
+                    $estoqueOrigem = Estoque::where('produto_id', $item->produto_id)
                         ->where('unidade_id', $mov->setor_origem_id)
-                        ->decrement('quantidade_atual', $qtdLiberar);
-
-                    // Cria/Lê o destino e adiciona o lock também para garantir integridade
-                    $estoqueDestinoExistente = Estoque::firstOrCreate(
-                        ['produto_id' => $item->produto_id, 'unidade_id' => $mov->setor_destino_id],
-                        ['quantidade_atual' => 0, 'quantidade_minima' => 0, 'status_disponibilidade' => 'D']
-                    );
-
-                    Estoque::where('id', $estoqueDestinoExistente->id)
                         ->lockForUpdate()
-                        ->increment('quantidade_atual', $qtdLiberar);
+                        ->first();
+
+                    if (!$estoqueOrigem) {
+                        throw new \Exception("Estoque de origem não encontrado para produto {$item->produto_id} no setor {$mov->setor_origem_id}");
+                    }
+
+                    $estoqueOrigem->quantidade_atual -= $qtdLiberar;
+                    $estoqueOrigem->save();
+
+                    Log::info("Estoque origem atualizado", [
+                        'estoque_id' => $estoqueOrigem->id,
+                        'nova_quantidade' => $estoqueOrigem->quantidade_atual
+                    ]);
+
+                    // 2. INCREMENTAR o estoque de DESTINO
+                    $estoqueDestino = Estoque::where('produto_id', $item->produto_id)
+                        ->where('unidade_id', $mov->setor_destino_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$estoqueDestino) {
+                        // Criar estoque de destino se não existir
+                        Log::info("Criando novo estoque de destino", [
+                            'produto_id' => $item->produto_id,
+                            'setor_id' => $mov->setor_destino_id
+                        ]);
+
+                        $estoqueDestino = Estoque::create([
+                            'produto_id' => $item->produto_id,
+                            'unidade_id' => $mov->setor_destino_id,
+                            'quantidade_atual' => $qtdLiberar,
+                            'quantidade_minima' => 0,
+                            'status_disponibilidade' => 'D'
+                        ]);
+
+                        Log::info("Estoque de destino criado", [
+                            'estoque_id' => $estoqueDestino->id,
+                            'quantidade_inicial' => $estoqueDestino->quantidade_atual
+                        ]);
+                    } else {
+                        // Incrementar estoque existente
+                        $estoqueDestino->quantidade_atual += $qtdLiberar;
+                        $estoqueDestino->save();
+
+                        Log::info("Estoque destino atualizado", [
+                            'estoque_id' => $estoqueDestino->id,
+                            'nova_quantidade' => $estoqueDestino->quantidade_atual
+                        ]);
+                    }
                 }
 
                 $mov->status_solicitacao = 'A';

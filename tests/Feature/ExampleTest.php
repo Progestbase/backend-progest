@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
+    // NOTA: RefreshDatabase removido - testes rodam no banco real
     /**
      * A basic test example.
      *
