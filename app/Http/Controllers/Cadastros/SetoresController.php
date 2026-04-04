@@ -76,8 +76,6 @@ class SetoresController
                 }
 
                 $fornecedorSetorId = $fornecedorData['setor_fornecedor_id'];
-
-                // Verificar se já existe esse relacionamento
                 $exists = DB::table('setor_fornecedor')
                     ->where('setor_solicitante_id', $Setores->id)
                     ->where('setor_fornecedor_id', $fornecedorSetorId)
